@@ -54,9 +54,15 @@ struct TranslateView: View {
             removeMouseMonitoring()
         }
         .translationTask(viewModel.configuration) { session in
-            if let resp = try? await session.translate(viewModel.sourceString) {
-                viewModel.targetString = resp.targetText
-                showWindowAtMouse()
+            guard !Task.isCancelled else { return }
+            do {
+                let resp = try await session.translate(viewModel.sourceString)
+                if !Task.isCancelled {
+                    viewModel.targetString = resp.targetText
+                    showWindowAtMouse()
+                }
+            } catch {
+                print("翻译错误: \(error)")
             }
         }
     }

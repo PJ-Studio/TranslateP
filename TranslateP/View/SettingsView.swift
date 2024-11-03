@@ -12,18 +12,24 @@ struct SettingsView: View {
     
     var body: some View {
         VStack {
+            Spacer()
+            
+            PrepareTranslateView(viewModel: viewModel)
+            
             HStack {
                 if !Translate.hasShortcutPermission() {
                     HStack {
-                        Text("‼️ 请授权 TranslateP 监听快捷键权限")
-                            .font(.headline)
+                        Text("第二步：授权监听快捷键")
+                            .font(.title3)
                         Button("去授权") {
                             Translate.openAccessibilitySettings()
                         }
                     }
                 }
             }
-            .padding()
+        
+            Spacer()
+            
             Text("授权开启后功能自动生效，光标划选你想要翻译的内容")
                 .foregroundStyle(.secondary)
             Text("执行两次 command + c 即可")

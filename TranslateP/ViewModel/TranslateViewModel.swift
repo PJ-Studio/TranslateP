@@ -44,7 +44,7 @@ class TranslateViewModel: ObservableObject {
         lastCommandCTime = now
     }
     
-    private func triggerTranslation() {
+    func triggerTranslation() {
         if configuration == nil {
             configuration = .init(source: Locale.Language(identifier: "en"), target: Locale.Language(identifier: "zh"))
         } else {

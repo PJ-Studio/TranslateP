@@ -24,8 +24,8 @@ struct TranslatePApp: App {
                 SettingsView(viewModel: viewModel)
                     .frame(minWidth: 400,
                            maxWidth: 400,
-                           minHeight: 150,
-                           maxHeight: 150,
+                           minHeight: 200,
+                           maxHeight: 200,
                            alignment: .center)
                     .onAppear {
                         if !hasPermission {
