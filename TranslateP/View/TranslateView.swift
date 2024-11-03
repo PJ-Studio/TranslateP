@@ -13,7 +13,7 @@ struct TranslateView: View {
     @State private var keyboardMonitor: Any?
     @State private var isPasteDone: Bool = false
 
-    @StateObject var viewModel = TranslateViewModel()
+    @ObservedObject var viewModel: TranslateViewModel
     
     var body: some View {
         HStack {
@@ -63,7 +63,7 @@ struct TranslateView: View {
     
     private func setupWindow() {
         DispatchQueue.main.async {
-            if let window = NSApplication.shared.windows.first {
+            if let window = Translate.findWindow(Translate.translateWindow) {
                 window.level = .floating
                 window.styleMask = [.borderless, .fullSizeContentView]
                 window.titlebarAppearsTransparent = true
@@ -93,15 +93,15 @@ struct TranslateView: View {
     private func hideWindow() {
         isPasteDone = false
         DispatchQueue.main.async {
-            if let window = NSApplication.shared.windows.first {
+            if let window = Translate.findWindow(Translate.translateWindow) {
                 window.orderOut(nil)
             }
         }
     }
     
     private func showWindowAtMouse() {
-        DispatchQueue.main.async {
-            if let window = NSApplication.shared.windows.first {
+        DispatchQueue.main.async {()
+            if let window = Translate.findWindow(Translate.translateWindow) {
                 let mouseLocation = NSEvent.mouseLocation
                 let screenFrame = NSScreen.main?.frame ?? .zero
                 
@@ -147,7 +147,7 @@ struct TranslateView: View {
     
     private func setupMouseMonitoring() {
         mouseEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { event in
-            if let window = NSApplication.shared.windows.first {
+            if let window = Translate.findWindow(Translate.translateWindow) {
                 let clickLocation = NSEvent.mouseLocation
                 let frame = NSRect(
                     x: window.frame.minX - 5,
@@ -178,6 +178,3 @@ struct TranslateView: View {
     }
 }
 
-#Preview {
-    TranslateView()
-}
