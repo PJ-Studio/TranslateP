@@ -2,7 +2,7 @@
 //  TranslatePApp.swift
 //  TranslateP
 //
-//  Created by ByteDance on 2024/11/2.
+//  Created by pjhubs on 2024/11/2.
 //
 
 import SwiftUI
@@ -29,18 +29,41 @@ struct TranslatePApp: App {
     @State private var windowPosition: CGPoint = .zero
     @State private var mouseEventMonitor: Any?
     
-    @State var sourceText = "双击 Command + C 分析剪贴板内容"
+    @State var targetText = "双击 Command + C 分析剪贴板内容"
     
     // 添加键盘监听器的状态变量
     @State private var keyboardMonitor: Any?
+    @State private var isPasteDone: Bool = false
     
     var body: some Scene {
+//        MenuBarExtra {
+//            
+//        } label: {
+//            Image(systemName: "translate")
+//        }
+
+        
         WindowGroup {
             HStack {
-                Text(sourceText)
+                Text(targetText)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(width: 150)
+                    .bold()
+                if isPasteDone {
+                    Text("✅")
+                        .frame(width: 20, height: 20)
+                } else {
+                    Image(systemName: "document.on.document")
+                        .frame(width: 20, height: 20)
+                        .onTapGesture {
+                            let pasteboard = NSPasteboard.general
+                            pasteboard.clearContents()
+                            pasteboard.setString(targetText, forType: .string)
+                            isPasteDone = true
+                        }
+                }
             }
+            .padding()
             .onAppear {
                 setupKeyboardMonitoring()
                 setupWindow()
@@ -59,8 +82,8 @@ struct TranslatePApp: App {
                 removeMouseMonitoring()
             }
             .translationTask(configuration) { session in
-                if let resp = try? await session.translate(sourceText) {
-                    sourceText = resp.targetText
+                if let resp = try? await session.translate(targetText) {
+                    targetText = resp.targetText
                     showWindowAtMouse()
                 }
             }
@@ -70,6 +93,7 @@ struct TranslatePApp: App {
     }
     
     private func hideWindow() {
+        isPasteDone = false
         DispatchQueue.main.async {
             if let window = NSApplication.shared.windows.first {
                 window.orderOut(nil)
@@ -86,7 +110,7 @@ struct TranslatePApp: App {
                 let contentHeight = window.contentView?.fittingSize.height ?? 100
                 
                 var x = mouseLocation.x - (150 / 2)
-                var y = mouseLocation.y
+                var y = mouseLocation.y + 10
                 
                 if x + 150 > screenFrame.maxX {
                     x = screenFrame.maxX - 150
@@ -104,9 +128,8 @@ struct TranslatePApp: App {
                 window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))
                 window.level = .floating
                 window.styleMask.remove(.resizable)
-                window.isOpaque = false
+                window.isOpaque = true
                 window.hasShadow = true
-                
                 window.orderFront(nil)
                 NSApplication.shared.activate(ignoringOtherApps: true)
             }
@@ -127,7 +150,7 @@ struct TranslatePApp: App {
                         if commandCCount == 2 {
                             DispatchQueue.main.async {
                                 if let clipboardString = NSPasteboard.general.string(forType: .string) {
-                                    sourceText = clipboardString
+                                    targetText = clipboardString
                                     triggerTranslation()
                                 }
                             }
@@ -155,11 +178,24 @@ struct TranslatePApp: App {
         DispatchQueue.main.async {
             if let window = NSApplication.shared.windows.first {
                 window.level = .floating
-                window.styleMask = [.borderless]
+                window.styleMask = [.borderless, .fullSizeContentView]
                 window.titlebarAppearsTransparent = true
                 window.titleVisibility = .hidden
-                window.backgroundColor = .windowBackgroundColor
+                window.backgroundColor = .clear
                 window.collectionBehavior.remove(.fullScreenPrimary)
+                
+                // 设置窗口圆角
+                window.isOpaque = false
+                window.backgroundColor = .clear
+                
+                // 设置视图圆角
+                if let contentView = window.contentView {
+                    contentView.wantsLayer = true
+                    contentView.layer?.cornerRadius = 8
+                    contentView.layer?.masksToBounds = true
+                    // 给contentView设置背景色
+                    contentView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+                }
                 
                 window.minSize = NSSize(width: 150, height: 0)
                 window.maxSize = NSSize(width: 150, height: CGFloat.infinity)

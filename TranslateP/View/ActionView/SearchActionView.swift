@@ -2,7 +2,7 @@
 //  SearchActionView.swift
 //  TranslateP
 //
-//  Created by ByteDance on 2024/11/2.
+//  Created by pjhubs on 2024/11/2.
 //
 
 import SwiftUI
