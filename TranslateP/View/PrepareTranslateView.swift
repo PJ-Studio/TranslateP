@@ -22,23 +22,23 @@ struct PrepareTranslateView: View {
             if !dictDownloaded {
                 Button("去下载") {
                     viewModel.triggerTranslation()
-                    buttonTapped = true
                 }
             }
         }
+        .onAppear(perform: {
+            viewModel.triggerTranslation()
+        })
         .translationTask(viewModel.configuration) { session in
-            if buttonTapped {
-                do {
-                    // Display a sheet asking the user's permission
-                    // to start downloading the language pairing.
-                    try await session.prepareTranslation()
-                    let response = try await session.translate(successDownloadString)
-                    displayString = response.targetText + "✅"
-                    dictDownloaded.toggle()
-                } catch {
-                    // Handle any errors.
-                    print(error)
-                }
+            do {
+                // Display a sheet asking the user's permission
+                // to start downloading the language pairing.
+                try await session.prepareTranslation()
+                let response = try await session.translate(successDownloadString)
+                displayString = response.targetText + "✅"
+                dictDownloaded.toggle()
+            } catch {
+                // Handle any errors.
+                print(error)
             }
         }
     }
