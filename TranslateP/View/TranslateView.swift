@@ -16,26 +16,39 @@ struct TranslateView: View {
     @ObservedObject var viewModel: TranslateViewModel
     
     var body: some View {
-        HStack {
+        VStack {
             Text(viewModel.targetString)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(width: 150)
                 .bold()
-            if isPasteDone {
-                Text("✅")
-                    .frame(width: 20, height: 20)
-            } else {
-                Image(systemName: "document.on.document")
-                    .frame(width: 20, height: 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Divider()
+            
+            HStack {
+                Spacer()
+                
+                if isPasteDone {
+                    Text("✅")
+                        .font(.system(size: 10))
+                } else {
+                    Image(systemName: "document.on.document")
+                        .font(.system(size: 10))
+                        .onTapGesture {
+                            let pasteboard = NSPasteboard.general
+                            pasteboard.clearContents()
+                            pasteboard.setString(viewModel.targetString, forType: .string)
+                            isPasteDone = true
+                        }
+                }
+                
+                Image(systemName: "info.circle")
+                    .font(.system(size: 10))
                     .onTapGesture {
-                        let pasteboard = NSPasteboard.general
-                        pasteboard.clearContents()
-                        pasteboard.setString(viewModel.targetString, forType: .string)
-                        isPasteDone = true
+                        NSWorkspace.shared.open(URL(string: "http://pjhubs.com")!)
                     }
             }
         }
-        .padding()
+        .padding(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
         .onAppear {
             setupKeyboardMonitoring()
             setupWindow()
@@ -53,6 +66,7 @@ struct TranslateView: View {
             removeKeyboardMonitoring()
             removeMouseMonitoring()
         }
+        .frame(width: 150)
         .translationTask(viewModel.configuration) { session in
             guard !Task.isCancelled else { return }
             do {

@@ -17,7 +17,6 @@ class TranslateViewModel: ObservableObject {
     @Published var targetString: String = ""
     // 每次 configuration 发生变化，都会触发一次完整翻译
     @Published var configuration: TranslationSession.Configuration?
-    @Published var fontSize: Double = 14
 
     
     func commandCKeyEvent() {
