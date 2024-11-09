@@ -11,14 +11,19 @@ import Translation
 struct PrepareTranslateView: View {
     @ObservedObject var viewModel: TranslateViewModel
     @State private var buttonTapped = false
-
+    @State private var displayString: String = "第一步：下载词典，快速翻译"
+    @State private var dictDownloaded: Bool = false
+    private let successDownloadString: String = "词典已下载，请进行第二步"
+    
     var body: some View {
         HStack {
-            Text("第一步：下载词典，快速翻译")
+            Text(displayString)
                 .font(.title3)
-            Button("去下载") {
-                viewModel.triggerTranslation()
-                buttonTapped = true
+            if !dictDownloaded {
+                Button("去下载") {
+                    viewModel.triggerTranslation()
+                    buttonTapped = true
+                }
             }
         }
         .translationTask(viewModel.configuration) { session in
@@ -27,8 +32,12 @@ struct PrepareTranslateView: View {
                     // Display a sheet asking the user's permission
                     // to start downloading the language pairing.
                     try await session.prepareTranslation()
+                    let response = try await session.translate(successDownloadString)
+                    displayString = response.targetText + "✅"
+                    dictDownloaded.toggle()
                 } catch {
                     // Handle any errors.
+                    print(error)
                 }
             }
         }
