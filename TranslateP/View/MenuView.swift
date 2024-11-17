@@ -9,7 +9,6 @@ import SwiftUI
 
 struct MenuView: View {
     @State private var hasInit = false
-    @State private var fontSize: Float = 20
     @State private var targetLang: Int = 0 // 翻译前
     @State private var sourceLang: Int = 1 // 翻译后
     
@@ -39,11 +38,11 @@ struct MenuView: View {
                     HStack {
                         Text("文字大小")
                             .font(.subheadline)
-                        Text("\(Int(fontSize))pt")
+                        Text("\(Int(viewModel.fontSize))pt")
                             .font(.footnote)
                             .foregroundStyle(Color.gray)
                         
-                        Slider(value: $fontSize, in: 14...40) { done in
+                        Slider(value: $viewModel.fontSize, in: 10...40) { done in
                             if done {
                                 
                             }

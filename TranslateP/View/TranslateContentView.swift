@@ -11,15 +11,27 @@ struct TranslateContentView: View {
     @ObservedObject var viewModel: TranslateViewModel
 
     var body: some View {
-        VStack {
-            Text(viewModel.targetString)
-                .fixedSize()
+        ZStack {
+            RoundedRectangle(cornerRadius: 4)
+                .foregroundStyle(.background)
+                .shadow(radius: 4)
+            
+            ScrollView {
+                Text(viewModel.targetString)
+                    .padding()
+                    .font(.system(size: viewModel.fontSize))
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+            }
+            .frame(maxWidth: 300, maxHeight: 500)
+            .scrollIndicators(.hidden)
+            .background {
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(lineWidth: 0.5)
+                    .opacity(0.3)
+            }
         }
-        .padding()
-        .background {
-            Rectangle()
-                .foregroundStyle(Color.gray)
-        }
+        .fixedSize()
         .translationTask(viewModel.configuration) { session in
             do {
                 let resp = try await session.translate(viewModel.sourceString)
@@ -33,6 +45,11 @@ struct TranslateContentView: View {
     }
 }
 
-//#Preview {
-//    TranslateContentView()
-//}
+#Preview {
+    var viewModel = TranslateViewModel()
+    
+    ZStack {
+        Text("333")
+        TranslateContentView(viewModel: viewModel)
+    }
+}

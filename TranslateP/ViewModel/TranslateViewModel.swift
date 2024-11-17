@@ -23,11 +23,12 @@ class TranslateViewModel: ObservableObject {
     
     @State private var mouseEventMonitor: Any?
     
-    @Published var targetString: String = "翻译中...耐心等待一下哦！"
-    // 每次 configuration 发生变化，都会触发一次完整翻译
+    @Published var targetString: String = "..."
+    /// 每次 configuration 发生变化，都会触发一次完整翻译
     @Published var configuration: TranslationSession.Configuration?
+    /// 翻译后文案字体大小
+    @Published var fontSize: CGFloat = 14
 
-    
     func commandCKeyEvent() {
         if !keyboardEventOn {
             return
@@ -44,7 +45,7 @@ class TranslateViewModel: ObservableObject {
                     guard let self = self else { return }
                     if let clipboardString = NSPasteboard.general.string(forType: .string) {
                         self.sourceString = clipboardString
-                        self.targetString = "翻译中...耐心等待一下哦！"
+                        self.targetString = "..."
                         self.showWindowAtMouse()
                         triggerTranslation()
                     }
