@@ -29,7 +29,7 @@ class TranslateViewModel: ObservableObject {
 
     
     @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
-    @Published var dictDownloaded: Bool = UserDefaults.standard.bool(forKey: Translate.hasDownloadedDict) 
+    @Published var dictDownloaded: Bool = UserDefaults.standard.bool(forKey: Translate.hasDownloadedDict)
     
     @Published var permissionDisplayString: String = "给 TranslateP 添加访问“辅助功能”权限"
     
@@ -50,19 +50,16 @@ class TranslateViewModel: ObservableObject {
             
             // 只在第二次按下时触发翻译
             if commandCCount == 2 {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    if let clipboardString = NSPasteboard.general.string(forType: .string) {
-                        self.sourceString = clipboardString
-                        self.targetString = TranslateViewModel.DefualtTextString
-                        self.showWindowAtMouse()
-                        triggerTranslation()
-                        commandCCount = 0 // 重置计数
-                    }
+                if let clipboardString = NSPasteboard.general.string(forType: .string) {
+                    self.sourceString = clipboardString
+                    self.targetString = TranslateViewModel.DefualtTextString
+                    self.showWindowAtMouse()
+                    triggerTranslation()
+                    commandCCount = 0
                 }
             }
         } else {
-            commandCCount = 1 // 重新开始计数
+            commandCCount = 1
         }
         
         lastCommandCTime = now
