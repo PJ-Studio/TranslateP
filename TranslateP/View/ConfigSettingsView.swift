@@ -2,7 +2,7 @@
 //  ConfigSettingsView.swift
 //  TranslateP
 //
-//  Created by ByteDance on 2024/11/16.
+//  Created by pjhubs on 2024/11/16.
 //
 
 import SwiftUI

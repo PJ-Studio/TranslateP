@@ -2,24 +2,27 @@
 //  MenuView.swift
 //  TranslateP
 //
-//  Created by ByteDance on 2024/11/16.
+//  Created by pjhubs on 2024/11/16.
 //
 
 import SwiftUI
 
 struct MenuView: View {
     @State private var hasInit = false
-    @State private var keyboardEvent = true
     @State private var fontSize: Float = 20
     @State private var targetLang: Int = 0 // 翻译前
     @State private var sourceLang: Int = 1 // 翻译后
-    @Environment(\.openWindow) var openWindow
+    
+    @ObservedObject var viewModel: TranslateViewModel
+    
+    @State private var keyboardCount = 0
 
+    
     var body: some View {
         VStack {
             Form {
                 Section("功能设置") {
-                    Toggle("两次 ⌘ + C 翻译", isOn: $keyboardEvent)
+                    Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
                         .font(.subheadline)
                     HStack {
                         Text("鼠标左键滑词翻译")
@@ -45,6 +48,7 @@ struct MenuView: View {
                                 
                             }
                         }
+                        .controlSize(.small) // 修改滑杆的滑块尺寸为小样式
                     }
                     
 //                    HStack {
@@ -86,9 +90,13 @@ struct MenuView: View {
             }
             Spacer()
         }
+        .onAppear {
+            viewModel.setupKeyboardMonitoring()
+            viewModel.setupMouseMonitoring()
+        }
     }
 }
 
-#Preview {
-    MenuView()
-}
+//#Preview {
+//    MenuView()
+//}
