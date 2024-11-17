@@ -13,6 +13,9 @@ struct Translate {
     static let settingsWindow = "settings_window"
     static let downloadDictWindow = "dict_window"
     
+    /// 标记是否下载过词典
+    static let hasDownloadedDict = "has_downloaded_dict"
+    
     static func findWindow(_ identifier: String) -> NSWindow? {
         return NSApplication.shared.windows.filter({ ($0.identifier?.rawValue ?? "").contains(identifier)}).first
     }

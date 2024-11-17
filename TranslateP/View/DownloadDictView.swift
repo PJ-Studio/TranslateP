@@ -25,8 +25,9 @@ struct DownloadDictView: View {
                         try await session.prepareTranslation()
                         let response = try await session.translate(viewModel.successDownloadString)
                         viewModel.dictDisplayString = response.targetText + " ✅"
-                        viewModel.dictDownloaded.toggle()
                         viewModel.dismissDownloadDictWindow()
+                        viewModel.dictDownloaded = true
+                        UserDefaults.standard.set(true, forKey: Translate.hasDownloadedDict)
                     } catch {
                         // Handle any errors.
                         print(error)

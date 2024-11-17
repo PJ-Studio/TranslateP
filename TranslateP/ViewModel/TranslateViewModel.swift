@@ -29,7 +29,7 @@ class TranslateViewModel: ObservableObject {
 
     
     @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
-    @Published var dictDownloaded: Bool = false
+    @Published var dictDownloaded: Bool = UserDefaults.standard.bool(forKey: Translate.hasDownloadedDict) 
     
     @Published var permissionDisplayString: String = "给 TranslateP 添加访问“辅助功能”权限"
     
