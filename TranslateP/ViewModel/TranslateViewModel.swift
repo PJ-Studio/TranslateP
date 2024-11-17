@@ -48,9 +48,9 @@ class TranslateViewModel: ObservableObject {
                         self.targetString = "..."
                         self.showWindowAtMouse()
                         triggerTranslation()
+                        commandCCount = 0 // 重置计数
                     }
                 }
-                commandCCount = 0 // 重置计数
             }
         } else {
             commandCCount = 1 // 重新开始计数
