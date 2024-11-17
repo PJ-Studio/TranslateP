@@ -13,14 +13,13 @@ import Translation
 @main
 struct TranslatePApp: App {
     @StateObject var viewModel = TranslateViewModel()
-    @State private var hasPermission = Translate.hasShortcutPermission()
     
     var body: some Scene {
         MenuBarExtra("App", systemImage: "translate") {
-            if hasPermission {
+            if viewModel.hasPermission {
                 MenuView(viewModel: viewModel)
             } else {
-                ConfigSettingsView()
+                ConfigSettingsView(viewModel: viewModel)
             }
         }
         .menuBarExtraStyle(.window)
@@ -32,6 +31,14 @@ struct TranslatePApp: App {
         .windowStyle(.plain) // 设置 window 类型为只有内容，其他都不要
         .windowLevel(.floating)
         .defaultPosition(.center)
+        
+        Window("下载词典", id: Translate.downloadDictWindow) {
+            DownloadDictView(viewModel: viewModel)
+                .frame(minWidth: 200, maxWidth: 200, minHeight: 200, maxHeight: 200)
+        }
+        .windowLevel(.floating)
+        .defaultPosition(.center)
+        .windowResizability(.contentSize)
         
 //        WindowGroup(id: Translate.translateWindow) {
 //            if hasPermission {

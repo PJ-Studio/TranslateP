@@ -11,24 +11,31 @@ import Translation
 class TranslateViewModel: ObservableObject {
     @Environment(\.openWindow) var openWindow
     @Environment(\.dismissWindow) var dismissWindow
-
-    private var commandCCount = 0
-    private var lastCommandCTime = Date()
-    private let commandCInterval: TimeInterval = 0.5
     
-    var sourceString = "双击 Command + C 分析剪贴板内容"
+    var sourceString = ""
+    let successDownloadString: String = "词典已下载"
     
-    @Published var keyboardEventOn: Bool = false
     @State private var keyboardMonitor: Any?
-    
     @State private var mouseEventMonitor: Any?
     
-    @Published var targetString: String = "..."
+    /// 是否开启双击 command + c 快捷键监听功能
+    @Published var keyboardEventOn: Bool = false
+    @Published var targetString: String = DefualtTextString
     /// 每次 configuration 发生变化，都会触发一次完整翻译
     @Published var configuration: TranslationSession.Configuration?
     /// 翻译后文案字体大小
     @Published var fontSize: CGFloat = 14
+    @Published var hasPermission: Bool = Translate.hasShortcutPermission()
 
+    
+    @Published var displayString: String = "词典安装完毕后，即可使用"
+    @Published var dictDownloaded: Bool = false
+    
+    private var commandCCount = 0
+    private var lastCommandCTime = Date()
+    private let commandCInterval: TimeInterval = 0.5
+    private static let DefualtTextString = "..."
+    
     func commandCKeyEvent() {
         if !keyboardEventOn {
             return
@@ -45,7 +52,7 @@ class TranslateViewModel: ObservableObject {
                     guard let self = self else { return }
                     if let clipboardString = NSPasteboard.general.string(forType: .string) {
                         self.sourceString = clipboardString
-                        self.targetString = "..."
+                        self.targetString = TranslateViewModel.DefualtTextString
                         self.showWindowAtMouse()
                         triggerTranslation()
                         commandCCount = 0 // 重置计数
@@ -128,5 +135,13 @@ class TranslateViewModel: ObservableObject {
                 window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))
             }
         }
+    }
+    
+    func openDownloadDictWindow() {
+        openWindow(id: Translate.downloadDictWindow)
+    }
+    
+    func dismissDownloadDictWindow() {
+        dismissWindow(id: Translate.downloadDictWindow)
     }
 }

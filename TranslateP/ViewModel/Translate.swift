@@ -11,6 +11,7 @@ import SwiftUI
 struct Translate {
     static let translateWindow = "translate_window"
     static let settingsWindow = "settings_window"
+    static let downloadDictWindow = "dict_window"
     
     static func findWindow(_ identifier: String) -> NSWindow? {
         return NSApplication.shared.windows.filter({ ($0.identifier?.rawValue ?? "").contains(identifier)}).first

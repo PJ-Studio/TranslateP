@@ -8,10 +8,12 @@
 import SwiftUI
 
 struct ConfigSettingsView: View {
+    @ObservedObject var viewModel: TranslateViewModel
+    
     var body: some View {
         VStack {
             Form {
-                Section("添加权限") {
+                Section("1. 添加权限") {
                     HStack {
                         Text("给 TranslateP 添加访问“辅助功能”权限")
                             .font(.subheadline)
@@ -24,15 +26,18 @@ struct ConfigSettingsView: View {
                 }
                 .font(.headline)
                 
-                Section("下载字典") {
+                Section("2. 下载词典") {
                     HStack {
-                        Text("词典安装完毕后，即可使用")
+                        Text(viewModel.displayString)
                             .font(.subheadline)
                         Spacer()
-                        Button("去下载") {
-                            
+                        
+                        if !viewModel.dictDownloaded {
+                            Button("去下载") {
+                                viewModel.openDownloadDictWindow()
+                            }
+                            .font(.subheadline)
                         }
-                        .font(.subheadline)
                     }
                 }
                 .font(.headline)
@@ -40,21 +45,19 @@ struct ConfigSettingsView: View {
             
             HStack {
                 Spacer()
-                Text("软件版本：1.0")
-                    .font(.footnote)
-                    .foregroundStyle(Color.gray)
-                    .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 20))
-                    .onTapGesture {
-                        NSWorkspace.shared.open(URL(string: "http://pjhubs.com")!)
-                    }
+                Button("下一步") {
+                    viewModel.hasPermission = Translate.hasShortcutPermission()
+                }
+                .font(.subheadline)
+                .padding(EdgeInsets(top: 0, leading: 0, bottom: 20, trailing: 30))
+
             }
-            Spacer()
         }
-        
         .formStyle(.grouped)
     }
 }
 
 #Preview {
-    ConfigSettingsView()
+    var viewModel = TranslateViewModel()
+    ConfigSettingsView(viewModel: viewModel)
 }
