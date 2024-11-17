@@ -35,7 +35,7 @@ class TranslateViewModel: ObservableObject {
     
     private var commandCCount = 0
     private var lastCommandCTime = Date()
-    private let commandCInterval: TimeInterval = 0.5
+    private let commandCInterval: TimeInterval = 0.3
     private static let DefualtTextString = "..."
     
     func commandCKeyEvent() {

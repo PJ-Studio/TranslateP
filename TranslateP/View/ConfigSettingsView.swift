@@ -34,12 +34,12 @@ struct ConfigSettingsView: View {
                             .font(.subheadline)
                         Spacer()
                         
-                        if !viewModel.dictDownloaded {
-                            Button("去下载") {
-                                viewModel.openDownloadDictWindow()
-                            }
-                            .font(.subheadline)
+                        
+                        Button(viewModel.dictDownloaded ? "检查" : "去下载") {
+                            viewModel.openDownloadDictWindow()
                         }
+                        .font(.subheadline)
+                        
                     }
                 }
                 .font(.headline)
