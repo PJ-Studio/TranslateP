@@ -24,7 +24,7 @@ struct DownloadDictView: View {
                         // to start downloading the language pairing.
                         try await session.prepareTranslation()
                         let response = try await session.translate(viewModel.successDownloadString)
-                        viewModel.displayString = response.targetText + "✅"
+                        viewModel.dictDisplayString = response.targetText + " ✅"
                         viewModel.dictDownloaded.toggle()
                         viewModel.dismissDownloadDictWindow()
                     } catch {

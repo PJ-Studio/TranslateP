@@ -15,20 +15,22 @@ struct ConfigSettingsView: View {
             Form {
                 Section("1. 添加权限") {
                     HStack {
-                        Text("给 TranslateP 添加访问“辅助功能”权限")
+                        Text(viewModel.permissionDisplayString)
                             .font(.subheadline)
                         Spacer()
-                        Button("去添加") {
-                            Translate.openAccessibilitySettings()
+                        if !viewModel.hasPermission {
+                            Button("去添加") {
+                                Translate.openAccessibilitySettings()
+                            }
+                            .font(.subheadline)
                         }
-                        .font(.subheadline)
                     }
                 }
                 .font(.headline)
                 
                 Section("2. 下载词典") {
                     HStack {
-                        Text(viewModel.displayString)
+                        Text(viewModel.dictDisplayString)
                             .font(.subheadline)
                         Spacer()
                         
@@ -42,18 +44,14 @@ struct ConfigSettingsView: View {
                 }
                 .font(.headline)
             }
-            
-            HStack {
-                Spacer()
-                Button("下一步") {
-                    viewModel.hasPermission = Translate.hasShortcutPermission()
-                }
-                .font(.subheadline)
-                .padding(EdgeInsets(top: 0, leading: 0, bottom: 20, trailing: 30))
-
-            }
         }
         .formStyle(.grouped)
+        .onAppear {
+            viewModel.hasPermission = Translate.hasShortcutPermission()
+            if viewModel.hasPermission {
+                viewModel.permissionDisplayString = "已添加权限 ✅"
+            }
+        }
     }
 }
 

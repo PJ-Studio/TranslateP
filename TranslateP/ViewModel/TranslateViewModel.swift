@@ -28,8 +28,10 @@ class TranslateViewModel: ObservableObject {
     @Published var hasPermission: Bool = Translate.hasShortcutPermission()
 
     
-    @Published var displayString: String = "词典安装完毕后，即可使用"
+    @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
     @Published var dictDownloaded: Bool = false
+    
+    @Published var permissionDisplayString: String = "给 TranslateP 添加访问“辅助功能”权限"
     
     private var commandCCount = 0
     private var lastCommandCTime = Date()

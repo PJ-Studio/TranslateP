@@ -39,8 +39,8 @@ struct MenuView: View {
                         Text("文字大小")
                             .font(.subheadline)
                         Text("\(Int(viewModel.fontSize))pt")
-                            .font(.footnote)
                             .foregroundStyle(Color.gray)
+                            .font(.footnote)
                         
                         Slider(value: $viewModel.fontSize, in: 10...40) { done in
                             if done {

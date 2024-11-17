@@ -16,7 +16,7 @@ struct TranslatePApp: App {
     
     var body: some Scene {
         MenuBarExtra("App", systemImage: "translate") {
-            if viewModel.hasPermission {
+            if viewModel.hasPermission && viewModel.dictDownloaded {
                 MenuView(viewModel: viewModel)
             } else {
                 ConfigSettingsView(viewModel: viewModel)
