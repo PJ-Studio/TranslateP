@@ -23,14 +23,27 @@ struct MenuView: View {
                 Section("功能设置") {
                     Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
                         .font(.subheadline)
-                    HStack {
-                        Text("鼠标左键滑词翻译")
-                            .font(.subheadline)
-                        Spacer()
-                        Text("开发中")
-                            .font(.footnote)
-                            .foregroundStyle(Color.gray)
-                    }
+                    
+//                    VStack {
+//                        Toggle("截图翻译", isOn: $viewModel.screenshotEventOn)
+//                            .font(.subheadline)
+//                        HStack {
+//                            Text("为防止误操作，推荐用完即关")
+//                                .font(.footnote)
+//                                .foregroundStyle(Color.secondary)
+//                            Spacer()
+//                        }
+//                    }
+                    
+//                    HStack {
+//                        Text("鼠标左键滑词翻译")
+//                            .font(.subheadline)
+//                        Spacer()
+//                        Text("开发中")
+//                            .font(.footnote)
+//                            .foregroundStyle(Color.gray)
+//                    }
+                    
                 }
                 .font(.headline)
                 
