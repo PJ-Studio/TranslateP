@@ -44,25 +44,26 @@ class TranslateViewModel: ObservableObject {
         }
         
         let now = Date()
+        let timeSinceLastPress = now.timeIntervalSince(lastCommandCTime)
         
-        if now.timeIntervalSince(lastCommandCTime) <= commandCInterval {
-            commandCCount += 1
-            
-            // 只在第二次按下时触发翻译
-            if commandCCount == 2 {
-                if let clipboardString = NSPasteboard.general.string(forType: .string) {
-                    self.sourceString = clipboardString
-                    self.targetString = TranslateViewModel.DefualtTextString
-                    self.showWindowAtMouse()
-                    triggerTranslation()
-                    commandCCount = 0
-                }
-            }
-        } else {
-            commandCCount = 1
+        // 重置计数器如果超过时间间隔
+        if timeSinceLastPress > commandCInterval {
+            commandCCount = 0
         }
         
+        commandCCount += 1
         lastCommandCTime = now
+        
+        // 只在第二次按下时触发翻译
+        if commandCCount == 2 && timeSinceLastPress <= commandCInterval {
+            if let clipboardString = NSPasteboard.general.string(forType: .string) {
+                self.sourceString = clipboardString
+                self.targetString = TranslateViewModel.DefualtTextString
+                self.showWindowAtMouse()
+                triggerTranslation()
+            }
+            commandCCount = 0  // 重置计数器
+        }
     }
     
     func triggerTranslation() {
