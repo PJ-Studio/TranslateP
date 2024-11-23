@@ -15,11 +15,13 @@ class TranslateViewModel: ObservableObject {
     var sourceString = ""
     let successDownloadString: String = "词典已下载"
     
-    @State private var keyboardMonitor: Any?
-    @State private var mouseEventMonitor: Any?
+    private var keyboardMonitor: Any?
+    private var mouseEventMonitor: Any?
     
     /// 是否开启双击 command + c 快捷键监听功能
     @Published var keyboardEventOn: Bool = false
+    ///是否开启截图翻译功能
+    @Published var screenshotEventOn: Bool = false
     @Published var targetString: String = DefualtTextString
     /// 每次 configuration 发生变化，都会触发一次完整翻译
     @Published var configuration: TranslationSession.Configuration?
@@ -44,26 +46,25 @@ class TranslateViewModel: ObservableObject {
         }
         
         let now = Date()
-        let timeSinceLastPress = now.timeIntervalSince(lastCommandCTime)
         
-        // 重置计数器如果超过时间间隔
-        if timeSinceLastPress > commandCInterval {
-            commandCCount = 0
-        }
-        
-        commandCCount += 1
-        lastCommandCTime = now
-        
-        // 只在第二次按下时触发翻译
-        if commandCCount == 2 && timeSinceLastPress <= commandCInterval {
-            if let clipboardString = NSPasteboard.general.string(forType: .string) {
-                self.sourceString = clipboardString
-                self.targetString = TranslateViewModel.DefualtTextString
-                self.showWindowAtMouse()
-                triggerTranslation()
+        if now.timeIntervalSince(lastCommandCTime) <= commandCInterval {
+            commandCCount += 1
+            
+            // 只在第二次按下时触发翻译
+            if commandCCount == 2 {
+                if let clipboardString = NSPasteboard.general.string(forType: .string) {
+                    self.sourceString = clipboardString
+                    self.targetString = TranslateViewModel.DefualtTextString
+                    self.showWindowAtMouse()
+                    triggerTranslation()
+                    commandCCount = 0
+                }
             }
-            commandCCount = 0  // 重置计数器
+        } else {
+            commandCCount = 1
         }
+        
+        lastCommandCTime = now
     }
     
     func triggerTranslation() {
@@ -75,6 +76,9 @@ class TranslateViewModel: ObservableObject {
     }
     
     func setupKeyboardMonitoring() {
+        if keyboardMonitor != nil {
+            return
+        }
         keyboardMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard let self = self else { return }
             if event.type == .keyDown {
@@ -86,6 +90,9 @@ class TranslateViewModel: ObservableObject {
     }
     
     func setupMouseMonitoring() {
+        if mouseEventMonitor != nil {
+            return
+        }
         mouseEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self = self else { return }
             if let window = Translate.findWindow(Translate.translateWindow) {

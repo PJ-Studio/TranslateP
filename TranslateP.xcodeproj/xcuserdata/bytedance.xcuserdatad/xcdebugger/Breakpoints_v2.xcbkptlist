@@ -88,8 +88,8 @@
             filePath = "TranslateP/ViewModel/TranslateViewModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "100"
-            endingLineNumber = "100"
+            startingLineNumber = "106"
+            endingLineNumber = "106"
             landmarkName = "setupMouseMonitoring()"
             landmarkType = "7">
          </BreakpointContent>
@@ -97,32 +97,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "0003A98B-CB67-411E-95D8-689C0713BA56"
+            uuid = "96519C3F-BF6D-427A-8C80-699DB2BB6B5D"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "TranslateP/ViewModel/TranslateViewModel.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "49"
-            endingLineNumber = "49"
-            landmarkName = "commandCKeyEvent()"
-            landmarkType = "7">
-         </BreakpointContent>
-      </BreakpointProxy>
-      <BreakpointProxy
-         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
-         <BreakpointContent
-            uuid = "9585C46F-D948-440B-B658-678A58CD3D0D"
-            shouldBeEnabled = "No"
-            ignoreCount = "0"
-            continueAfterRunningActions = "No"
-            filePath = "TranslateP/ViewModel/TranslateViewModel.swift"
-            startingColumnNumber = "9223372036854775807"
-            endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "57"
-            endingLineNumber = "57"
-            landmarkName = "commandCKeyEvent()"
+            startingLineNumber = "80"
+            endingLineNumber = "80"
+            landmarkName = "setupKeyboardMonitoring()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
