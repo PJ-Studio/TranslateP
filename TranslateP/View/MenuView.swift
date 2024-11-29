@@ -10,7 +10,7 @@ import SwiftUI
 struct MenuView: View {
     @State private var hasInit = false
     @State private var targetLang: Int = 0 // 翻译前
-    @State private var sourceLang: Int = 1 // 翻译后
+    @State private var sourceLang: Int = 0 // 翻译后
     
     @ObservedObject var viewModel: TranslateViewModel
     
@@ -23,6 +23,26 @@ struct MenuView: View {
                 Section("功能设置") {
                     Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
                         .font(.subheadline)
+                    
+                    HStack {
+                        Picker("", selection: $targetLang) {
+                            Text("中文").tag(0)
+                                .font(.subheadline)
+                        }
+                        .font(.subheadline)
+                        .frame(width: 100)
+                        .padding(EdgeInsets(top: 0, leading: -15, bottom: 0, trailing: 20))
+                        
+                        Picker(selection: $sourceLang) {
+                            Text("英文").tag(0)
+                                .font(.subheadline)
+                        } label: {
+                            Image(systemName: "arrowshape.right")
+                        }
+                        .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+
+                    }
+                    .foregroundStyle(Color.gray)
                     
 //                    VStack {
 //                        Toggle("截图翻译", isOn: $viewModel.screenshotEventOn)
@@ -62,36 +82,27 @@ struct MenuView: View {
                         }
                         .controlSize(.small) // 修改滑杆的滑块尺寸为小样式
                     }
-                    
-//                    HStack {
-//                        Picker("把", selection: $targetLang) {
-//                            Text("中文").tag(0)
-//                                .font(.subheadline)
-//
-//                            Text("英文").tag(1)
-//                                .font(.subheadline)
-//
-//                        }
-//                        
-//                        .font(.subheadline)
-//
-//                        Picker("翻译为", selection: $sourceLang) {
-//                            Text("中文").tag(0)
-//                                .font(.subheadline)
-//
-//                            Text("英文").tag(1)
-//                                .font(.subheadline)
-//
-//                        }
-//                        .font(.subheadline)
-//                    }
                 }
                 .font(.headline)
             }
             .formStyle(.grouped)
             
             HStack {
+                Group {
+                    Image(systemName: "power")
+                    
+                    Text("退出")
+                        .onTapGesture {
+                            NSApplication.shared.terminate(nil)
+                        }
+                        .padding(EdgeInsets(top: 0, leading: -25, bottom: 0, trailing: 0))
+                }
+                .font(.footnote)
+                .foregroundStyle(Color.gray)
+                .padding(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 0))
+
                 Spacer()
+                
                 Text("软件版本：1.0")
                     .font(.footnote)
                     .foregroundStyle(Color.gray)
@@ -109,6 +120,7 @@ struct MenuView: View {
     }
 }
 
-//#Preview {
-//    MenuView()
-//}
+#Preview {
+    MenuView(viewModel: TranslateViewModel())
+        .frame(width: 300)
+}
