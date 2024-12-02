@@ -26,7 +26,7 @@ struct MenuView: View {
                     
                     HStack {
                         Picker("", selection: $targetLang) {
-                            Text("中文").tag(0)
+                            Text("英文").tag(0)
                                 .font(.subheadline)
                         }
                         .font(.subheadline)
@@ -34,7 +34,7 @@ struct MenuView: View {
                         .padding(EdgeInsets(top: 0, leading: -15, bottom: 0, trailing: 20))
                         
                         Picker(selection: $sourceLang) {
-                            Text("英文").tag(0)
+                            Text("中文").tag(0)
                                 .font(.subheadline)
                         } label: {
                             Image(systemName: "arrowshape.right")
