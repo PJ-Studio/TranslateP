@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TranslateContentView: View {
     @ObservedObject var viewModel: TranslateViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack {
@@ -16,11 +17,11 @@ struct TranslateContentView: View {
             
             ScrollView {
                 Text(viewModel.targetString)
-                    .foregroundStyle(.white)
                     .padding()
                     .font(.system(size: viewModel.fontSize))
                     .lineLimit(nil)
                     .multilineTextAlignment(.leading)
+                    .foregroundColor(colorScheme == .dark ? .black : .white)
                     .shadow(radius: 4)
             }
             .frame(maxWidth: 300, maxHeight: 500)
@@ -42,17 +43,12 @@ struct TranslateContentView: View {
 
 
 struct TranslateContentBGView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
     var body: some View {
-        if #available(macOS 26.0, *) {
-            RoundedRectangle(cornerRadius: 4)
-                .foregroundStyle(.clear)
-                .shadow(radius: 4)
-                .glassEffect(.regular.tint(.black.opacity(0.5)), in: .rect(cornerRadius: 4))
-        } else {
-            RoundedRectangle(cornerRadius: 4)
-                .foregroundStyle(.clear)
-                .shadow(radius: 4)
-        }
+        RoundedRectangle(cornerRadius: 4)
+            .foregroundStyle((colorScheme == .dark ? Color.white : Color.black).opacity(0.7))
+            .shadow(radius: 4)
     }
 }
 

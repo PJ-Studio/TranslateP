@@ -42,7 +42,6 @@ struct MenuView: View {
                         .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
 
                     }
-                    .foregroundStyle(Color.gray)
                     
 //                    VStack {
 //                        Toggle("截图翻译", isOn: $viewModel.screenshotEventOn)
@@ -72,7 +71,6 @@ struct MenuView: View {
                         Text("文字大小")
                             .font(.subheadline)
                         Text("\(Int(viewModel.fontSize))pt")
-                            .foregroundStyle(Color.gray)
                             .font(.footnote)
                         
                         Slider(value: $viewModel.fontSize, in: 10...40) { done in
@@ -98,14 +96,12 @@ struct MenuView: View {
                         .padding(EdgeInsets(top: 0, leading: -25, bottom: 0, trailing: 0))
                 }
                 .font(.footnote)
-                .foregroundStyle(Color.gray)
                 .padding(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 0))
 
                 Spacer()
                 
                 Text("软件版本：1.0")
                     .font(.footnote)
-                    .foregroundStyle(Color.gray)
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 20))
                     .onTapGesture {
                         NSWorkspace.shared.open(URL(string: "http://pjhubs.com")!)
