@@ -7,11 +7,12 @@
 
 import SwiftUI
 import AVFoundation
+import AppKit
 
 struct TranslateContentView: View {
     @ObservedObject var viewModel: TranslateViewModel
-    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var speechManager = SpeechManager()
+    @State private var isCopied = false
 
     var body: some View {
         ZStack {
@@ -25,17 +26,12 @@ struct TranslateContentView: View {
                             .font(.system(size: viewModel.fontSize))
                             .lineLimit(nil)
                             .multilineTextAlignment(.leading)
-                            .foregroundColor(colorScheme == .dark ? .black : .white)
+                            .foregroundColor(.white)
                         Spacer()
                     }
                 }
                 .frame(minWidth: 70, maxWidth: 300, minHeight: 45, maxHeight: 500)
                 .scrollIndicators(.never)
-                
-                Rectangle()
-                    .frame(height: 0.5)
-                    .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 10))
-                    .foregroundStyle((colorScheme == .dark ? Color.black : Color.white).opacity(0.4))
 
                 Spacer()
                 
@@ -44,10 +40,21 @@ struct TranslateContentView: View {
                         speechManager.speakText(viewModel.sourceString)
                     }) {
                         Image(systemName: speechManager.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
-                            .foregroundColor(colorScheme == .dark ? .black.opacity(0.4) : .gray)
+                            .foregroundColor(.gray)
                             .fixedSize()
                     }
                     .buttonStyle(.plain)
+                    
+                    Button(action: {
+                        copyTranslatedText()
+                    }) {
+                        Image(systemName: isCopied ? "checkmark" : "document.on.document")
+                            .foregroundColor(.gray)
+                            .fixedSize()
+                            .frame(width: 16, height: 16)
+                    }
+                    .buttonStyle(.plain)
+                    
                     Spacer()
                 }
                 .padding(EdgeInsets(top: 0, leading: 10, bottom: 10, trailing: 10))
@@ -63,6 +70,22 @@ struct TranslateContentView: View {
             } catch {
                 print("翻译错误: \(error)")
             }
+        }
+    }
+    
+    private func copyTranslatedText() {
+        guard !viewModel.targetString.isEmpty else { return }
+        
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(viewModel.targetString, forType: .string)
+        
+        // 显示复制成功反馈（无动画，避免布局抖动）
+        isCopied = true
+        
+        // 2秒后恢复原始图标
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            isCopied = false
         }
     }
 }
@@ -121,11 +144,9 @@ class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 }
 
 struct TranslateContentBGView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    
     var body: some View {
         RoundedRectangle(cornerRadius: 4)
-            .foregroundStyle(colorScheme == .dark ? Color.gray : Color.black.opacity(0.7))
+            .foregroundStyle(Color.black.opacity(0.7))
             .shadow(radius: 4)
     }
 }
