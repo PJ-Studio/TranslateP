@@ -6,26 +6,52 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct TranslateContentView: View {
     @ObservedObject var viewModel: TranslateViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var speechManager = SpeechManager()
 
     var body: some View {
         ZStack {
             TranslateContentBGView()
             
-            ScrollView {
-                Text(viewModel.targetString)
-                    .padding()
-                    .font(.system(size: viewModel.fontSize))
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .foregroundColor(colorScheme == .dark ? .black : .white)
-                    .shadow(radius: 4)
+            VStack {
+                ScrollView {
+                    HStack {
+                        Text(viewModel.targetString)
+                            .padding(EdgeInsets(top: 15, leading: 10, bottom: 5, trailing: 0))
+                            .font(.system(size: viewModel.fontSize))
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .foregroundColor(colorScheme == .dark ? .black : .white)
+                        Spacer()
+                    }
+                }
+                .frame(minWidth: 70, maxWidth: 300, minHeight: 45, maxHeight: 500)
+                .scrollIndicators(.never)
+                
+                Rectangle()
+                    .frame(height: 0.5)
+                    .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 10))
+                    .foregroundStyle((colorScheme == .dark ? Color.black : Color.white).opacity(0.4))
+
+                Spacer()
+                
+                HStack {
+                    Button(action: {
+                        speechManager.speakText(viewModel.sourceString)
+                    }) {
+                        Image(systemName: speechManager.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
+                            .foregroundColor(colorScheme == .dark ? .black.opacity(0.4) : .gray)
+                            .fixedSize()
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                .padding(EdgeInsets(top: 0, leading: 10, bottom: 10, trailing: 10))
             }
-            .frame(maxWidth: 300, maxHeight: 500)
-            .scrollIndicators(.never)
         }
         .fixedSize()
         .translationTask(viewModel.configuration) { session in
@@ -41,13 +67,65 @@ struct TranslateContentView: View {
     }
 }
 
+class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+    @Published var isSpeaking = false
+    private let synthesizer = AVSpeechSynthesizer()
+    private let speechQueue = DispatchQueue(label: "speech.queue", qos: .background)
+    
+    override init() {
+        super.init()
+        synthesizer.delegate = self
+    }
+    
+    func speakText(_ text: String) {
+        guard !text.isEmpty else { return }
+        
+        if synthesizer.isSpeaking {
+            stopSpeaking()
+            return
+        }
+        
+        speechQueue.async {
+            let utterance = AVSpeechUtterance(string: text)
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.rate = 0.5
+            utterance.volume = 1.0
+            
+            DispatchQueue.main.async {
+                self.isSpeaking = true
+            }
+            
+            self.synthesizer.speak(utterance)
+        }
+    }
+    
+    func stopSpeaking() {
+        synthesizer.stopSpeaking(at: .immediate)
+        DispatchQueue.main.async {
+            self.isSpeaking = false
+        }
+    }
+    
+    // MARK: - AVSpeechSynthesizerDelegate
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        DispatchQueue.main.async {
+            self.isSpeaking = false
+        }
+    }
+    
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        DispatchQueue.main.async {
+            self.isSpeaking = false
+        }
+    }
+}
 
 struct TranslateContentBGView: View {
     @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         RoundedRectangle(cornerRadius: 4)
-            .foregroundStyle((colorScheme == .dark ? Color.white : Color.black).opacity(0.7))
+            .foregroundStyle(colorScheme == .dark ? Color.gray : Color.black.opacity(0.7))
             .shadow(radius: 4)
     }
 }
@@ -55,8 +133,8 @@ struct TranslateContentBGView: View {
 #Preview {
     var viewModel = TranslateViewModel()
     
-    ZStack {
-        Text("333")
-        TranslateContentView(viewModel: viewModel)
+    TranslateContentView(viewModel: viewModel)
+    .onAppear {
+        viewModel.targetString = "阿水大师的阿斯顿阿斯顿爱上爱上"
     }
 }
