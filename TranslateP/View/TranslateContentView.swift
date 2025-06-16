@@ -12,6 +12,7 @@ struct TranslateContentView: View {
     @ObservedObject var viewModel: TranslateViewModel
     @StateObject private var speechManager = SpeechManager()
     @State private var isCopied = false
+    @State private var wordPhonetics: String? = nil
 
     var body: some View {
         ZStack {
@@ -29,10 +30,20 @@ struct TranslateContentView: View {
                         Spacer()
                     }
                 }
-                .frame(minWidth: 70, maxWidth: 300, minHeight: 45, maxHeight: 500)
+                .frame(minWidth: 70, maxWidth: 300, minHeight: 40, maxHeight: 500)
                 .scrollIndicators(.never)
 
                 Spacer()
+                
+                if let wordPhonetics = wordPhonetics {
+                    HStack {
+                        Text(wordPhonetics)
+                            .font(.callout)
+                            .foregroundStyle(.gray)
+                        Spacer()
+                    }
+                    .padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
+                }
                 
                 HStack {
                     Button(action: {
@@ -65,6 +76,7 @@ struct TranslateContentView: View {
                 let resp = try await session.translate(viewModel.sourceString)
                 DispatchQueue.main.async {
                     viewModel.targetString = resp.targetText
+                    wordPhonetics = WordService.getWordPhonetics(for: viewModel.sourceString)
                 }
             } catch {
                 print("翻译错误: \(error)")
