@@ -12,8 +12,8 @@ struct TranslateContentView: View {
     @ObservedObject var viewModel: TranslateViewModel
     @StateObject private var speechManager = SpeechManager()
     @State private var isCopied = false
-//    @State private var wordPhonetics: String? = nil
-    @State private var wordPhonetics: String? = "[gjsak]"
+    @State private var wordPhonetics: String? = nil
+    @State private var isTranslationCompleted = false
 
     var body: some View {
         ZStack {
@@ -36,7 +36,7 @@ struct TranslateContentView: View {
 
                 Spacer()
                 
-                if let wordPhonetics = wordPhonetics {
+                if let wordPhonetics = wordPhonetics, isTranslationCompleted {
                     HStack {
                         Text(wordPhonetics)
                             .font(.callout)
@@ -47,24 +47,27 @@ struct TranslateContentView: View {
                 }
                 
                 HStack {
-                    Button(action: {
-                        speechManager.speakText(viewModel.sourceString)
-                    }) {
-                        Image(systemName: speechManager.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
-                            .foregroundColor(.gray)
-                            .fixedSize()
+                    // 只有翻译完成时才显示朗读和复制按钮
+                    if isTranslationCompleted {
+                        Button(action: {
+                            speechManager.speakText(viewModel.sourceString)
+                        }) {
+                            Image(systemName: speechManager.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
+                                .foregroundColor(.gray)
+                                .fixedSize()
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(action: {
+                            copyTranslatedText()
+                        }) {
+                            Image(systemName: isCopied ? "checkmark" : "document.on.document")
+                                .foregroundColor(.gray)
+                                .fixedSize()
+                                .frame(width: 16, height: 16)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                    
-                    Button(action: {
-                        copyTranslatedText()
-                    }) {
-                        Image(systemName: isCopied ? "checkmark" : "document.on.document")
-                            .foregroundColor(.gray)
-                            .fixedSize()
-                            .frame(width: 16, height: 16)
-                    }
-                    .buttonStyle(.plain)
                     
                     Button(action: {
                         viewModel.togglePin()
@@ -83,14 +86,24 @@ struct TranslateContentView: View {
         }
         .fixedSize()
         .translationTask(viewModel.configuration) { session in
+            // 翻译开始时重置状态
+            DispatchQueue.main.async {
+                isTranslationCompleted = false
+                wordPhonetics = nil
+            }
+            
             do {
                 let resp = try await session.translate(viewModel.sourceString)
                 DispatchQueue.main.async {
                     viewModel.targetString = resp.targetText
                     wordPhonetics = WordService.getWordPhonetics(for: viewModel.sourceString)
+                    isTranslationCompleted = true
                 }
             } catch {
                 print("翻译错误: \(error)")
+                DispatchQueue.main.async {
+                    isTranslationCompleted = false
+                }
             }
         }
     }
