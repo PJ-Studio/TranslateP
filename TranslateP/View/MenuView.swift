@@ -15,6 +15,14 @@ struct MenuView: View {
     @ObservedObject var viewModel: TranslateViewModel
     
     @State private var keyboardCount = 0
+    
+    /// 从 Bundle 获取应用版本号
+    private var appVersion: String {
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            return version
+        }
+        return "1.0"
+    }
 
     
     var body: some View {
@@ -100,7 +108,7 @@ struct MenuView: View {
 
                 Spacer()
                 
-                Text("软件版本：1.0")
+                Text("软件版本：\(appVersion)")
                     .font(.footnote)
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 20))
                     .onTapGesture {
