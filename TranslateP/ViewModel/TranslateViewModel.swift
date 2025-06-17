@@ -28,6 +28,8 @@ class TranslateViewModel: ObservableObject {
     /// 翻译后文案字体大小
     @Published var fontSize: CGFloat = 14
     @Published var hasPermission: Bool = Translate.hasShortcutPermission()
+    /// 翻译窗口是否被 pin 固定
+    @Published var isPinned: Bool = false
 
     
     @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
@@ -75,6 +77,11 @@ class TranslateViewModel: ObservableObject {
         }
     }
     
+    /// 切换 pin 状态
+    func togglePin() {
+        isPinned.toggle()
+    }
+    
     func setupKeyboardMonitoring() {
         if keyboardMonitor != nil {
             return
@@ -95,6 +102,12 @@ class TranslateViewModel: ObservableObject {
         }
         mouseEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self = self else { return }
+            
+            // 如果窗口被 pin 了，则不自动关闭
+            if self.isPinned {
+                return
+            }
+            
             if let window = Translate.findWindow(Translate.translateWindow) {
                 let clickLocation = NSEvent.mouseLocation
                 let frame = NSRect(
@@ -105,7 +118,7 @@ class TranslateViewModel: ObservableObject {
                 )
                 
                 if !frame.contains(clickLocation) {
-                    self.dismissWindow(id: Translate.translateWindow)
+                    self.dismissTranslateWindow()
                 }
             }
         }
@@ -115,32 +128,47 @@ class TranslateViewModel: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
-            openWindow(id: Translate.translateWindow)
-            
-            if let window = Translate.findWindow(Translate.translateWindow) {
-                let mouseLocation = NSEvent.mouseLocation
-                let screenFrame = NSScreen.main?.frame ?? .zero
-                
-                let contentHeight = window.contentView?.fittingSize.height ?? 100
-                
-                var x = mouseLocation.x - (150 / 2)
-                var y = mouseLocation.y + 10
-                
-                if x + 150 > screenFrame.maxX {
-                    x = screenFrame.maxX - 150
+            // 如果窗口已存在（可能在其他桌面被 pin），先关闭它
+            if let existingWindow = Translate.findWindow(Translate.translateWindow) {
+                self.dismissTranslateWindow()
+                // 等待窗口关闭
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.createNewTranslateWindow()
                 }
-                if x < screenFrame.minX {
-                    x = screenFrame.minX
-                }
-                if y + contentHeight > screenFrame.maxY {
-                    y = screenFrame.maxY - contentHeight
-                }
-                if y < screenFrame.minY {
-                    y = screenFrame.minY
-                }
-                
-                window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))
+            } else {
+                // 当显示新窗口时，重置 pin 状态
+                self.isPinned = false
+                self.createNewTranslateWindow()
             }
+        }
+    }
+    
+    private func createNewTranslateWindow() {
+        openWindow(id: Translate.translateWindow)
+        
+        if let window = Translate.findWindow(Translate.translateWindow) {
+            let mouseLocation = NSEvent.mouseLocation
+            let screenFrame = NSScreen.main?.frame ?? .zero
+            
+            let contentHeight = window.contentView?.fittingSize.height ?? 100
+            
+            var x = mouseLocation.x - (150 / 2)
+            var y = mouseLocation.y + 10
+            
+            if x + 150 > screenFrame.maxX {
+                x = screenFrame.maxX - 150
+            }
+            if x < screenFrame.minX {
+                x = screenFrame.minX
+            }
+            if y + contentHeight > screenFrame.maxY {
+                y = screenFrame.maxY - contentHeight
+            }
+            if y < screenFrame.minY {
+                y = screenFrame.minY
+            }
+            
+            window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))
         }
     }
     
@@ -150,5 +178,11 @@ class TranslateViewModel: ObservableObject {
     
     func dismissDownloadDictWindow() {
         dismissWindow(id: Translate.downloadDictWindow)
+    }
+    
+    /// 关闭翻译窗口并重置 pin 状态
+    func dismissTranslateWindow() {
+        isPinned = false
+        dismissWindow(id: Translate.translateWindow)
     }
 }

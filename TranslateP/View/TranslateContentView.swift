@@ -12,7 +12,8 @@ struct TranslateContentView: View {
     @ObservedObject var viewModel: TranslateViewModel
     @StateObject private var speechManager = SpeechManager()
     @State private var isCopied = false
-    @State private var wordPhonetics: String? = nil
+//    @State private var wordPhonetics: String? = nil
+    @State private var wordPhonetics: String? = "[gjsak]"
 
     var body: some View {
         ZStack {
@@ -65,6 +66,16 @@ struct TranslateContentView: View {
                     }
                     .buttonStyle(.plain)
                     
+                    Button(action: {
+                        viewModel.togglePin()
+                    }) {
+                        Image(systemName: viewModel.isPinned ? "pin.fill" : "pin")
+                            .foregroundColor(viewModel.isPinned ? .blue : .gray)
+                            .fixedSize()
+                            .rotationEffect(.degrees(45))
+                    }
+                    .buttonStyle(.plain)
+                    
                     Spacer()
                 }
                 .padding(EdgeInsets(top: 0, leading: 10, bottom: 10, trailing: 10))
@@ -95,7 +106,7 @@ struct TranslateContentView: View {
         isCopied = true
         
         // 2秒后恢复原始图标
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isCopied = false
         }
     }
@@ -114,6 +125,6 @@ struct TranslateContentBGView: View {
     
     TranslateContentView(viewModel: viewModel)
     .onAppear {
-        viewModel.targetString = "阿水大师的阿斯顿阿斯顿爱上爱上"
+        viewModel.targetString = "阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿"
     }
 }
