@@ -36,7 +36,7 @@ struct TranslateContentView: View {
 
                 Spacer()
                 
-                if let wordPhonetics = wordPhonetics, isTranslationCompleted {
+                if let wordPhonetics = wordPhonetics, isTranslationCompleted, viewModel.isSourceLanguageEnglish {
                     HStack {
                         Text(wordPhonetics)
                             .font(.callout)
@@ -50,7 +50,8 @@ struct TranslateContentView: View {
                     // 只有翻译完成时才显示朗读和复制按钮
                     if isTranslationCompleted {
                         Button(action: {
-                            speechManager.speakText(viewModel.sourceString)
+                            let language = viewModel.isSourceLanguageEnglish ? "en-US" : "zh-CN"
+                            speechManager.speakText(viewModel.sourceString, language: language)
                         }) {
                             Image(systemName: speechManager.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
                                 .foregroundColor(.gray)
@@ -86,6 +87,14 @@ struct TranslateContentView: View {
         }
         .fixedSize()
         .translationTask(viewModel.configuration) { session in
+            // 检查 configuration 是否有效
+            guard let config = viewModel.configuration else { 
+                print("配置无效")
+                return 
+            }
+            
+            print("开始翻译: \(viewModel.sourceString), 反转状态: \(viewModel.isLanguageReversed)")
+            
             // 翻译开始时重置状态
             DispatchQueue.main.async {
                 isTranslationCompleted = false
@@ -94,9 +103,11 @@ struct TranslateContentView: View {
             
             do {
                 let resp = try await session.translate(viewModel.sourceString)
+                print("翻译成功: \(resp.targetText)")
                 DispatchQueue.main.async {
                     viewModel.targetString = resp.targetText
-                    wordPhonetics = WordService.getWordPhonetics(for: viewModel.sourceString)
+                    // 只有源语言是英文时才获取音标
+                    wordPhonetics = viewModel.isSourceLanguageEnglish ? WordService.getWordPhonetics(for: viewModel.sourceString) : nil
                     isTranslationCompleted = true
                 }
             } catch {

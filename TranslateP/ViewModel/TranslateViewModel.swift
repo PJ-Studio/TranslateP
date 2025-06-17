@@ -32,6 +32,8 @@ class TranslateViewModel: ObservableObject {
     @Published var isPinned: Bool = false
     /// 记住被 pin 时的窗口位置
     private var pinnedWindowPosition: NSPoint?
+    /// 是否反转语言（true: 中文->英文，false: 英文->中文）
+    @Published var isLanguageReversed: Bool = false
 
     
     @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
@@ -72,8 +74,11 @@ class TranslateViewModel: ObservableObject {
     }
     
     func triggerTranslation() {
+        let (sourceLanguage, targetLanguage) = isLanguageReversed 
+            ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))  // 中文->英文
+            : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))  // 英文->中文
         if configuration == nil {
-            configuration = .init(source: Locale.Language(identifier: "en"), target: Locale.Language(identifier: "zh"))
+            configuration = .init(source: sourceLanguage, target: targetLanguage)
         } else {
             configuration?.invalidate()
         }
@@ -97,6 +102,21 @@ class TranslateViewModel: ObservableObject {
             }
         }
         isPinned.toggle()
+    }
+    
+    /// 反转翻译语言
+    func toggleLanguageDirection() {
+        isLanguageReversed.toggle()
+        
+        let (sourceLanguage, targetLanguage) = isLanguageReversed
+            ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))  // 中文->英文
+            : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))  // 英文->中文
+        configuration = .init(source: sourceLanguage, target: targetLanguage)
+    }
+    
+    /// 当前源语言是否为英文
+    var isSourceLanguageEnglish: Bool {
+        return !isLanguageReversed
     }
     
     func setupKeyboardMonitoring() {
