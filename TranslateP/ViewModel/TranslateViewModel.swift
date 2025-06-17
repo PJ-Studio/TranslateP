@@ -82,13 +82,19 @@ class TranslateViewModel: ObservableObject {
     /// 切换 pin 状态
     func togglePin() {
         if !isPinned {
-            // 准备 pin 时，记录当前窗口位置
+            // 准备 pin 时，记录当前窗口位置并设置窗口行为
             if let window = Translate.findWindow(Translate.translateWindow) {
                 pinnedWindowPosition = window.frame.origin
+                // 设置窗口在所有桌面显示
+                window.collectionBehavior = [.canJoinAllSpaces, .stationary]
             }
         } else {
-            // 取消 pin 时，清除记录的位置
+            // 取消 pin 时，清除记录的位置并恢复正常窗口行为
             pinnedWindowPosition = nil
+            if let window = Translate.findWindow(Translate.translateWindow) {
+                // 恢复正常的桌面行为
+                window.collectionBehavior = []
+            }
         }
         isPinned.toggle()
     }
@@ -214,6 +220,11 @@ class TranslateViewModel: ObservableObject {
                 
                 window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))
             }
+            
+            // 如果是 pin 模式，设置窗口在所有桌面显示
+            if usePinnedPosition && isPinned {
+                window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+            }
         }
     }
     
@@ -227,6 +238,10 @@ class TranslateViewModel: ObservableObject {
     
     /// 关闭翻译窗口并重置 pin 状态
     func dismissTranslateWindow() {
+        // 在关闭前恢复窗口的正常行为
+        if let window = Translate.findWindow(Translate.translateWindow) {
+            window.collectionBehavior = []
+        }
         isPinned = false
         pinnedWindowPosition = nil
         dismissWindow(id: Translate.translateWindow)
