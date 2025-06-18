@@ -14,6 +14,9 @@ struct TranslateContentView: View {
     @State private var isCopied = false
     @State private var wordPhonetics: String? = nil
     @State private var isTranslationCompleted = false
+    
+    // 拖拽相关状态
+    @State private var isDragging = false
 
     var body: some View {
         ZStack {
@@ -86,9 +89,22 @@ struct TranslateContentView: View {
             }
         }
         .fixedSize()
+        .onAppear {
+            // 在 pin 状态下启用窗口拖拽
+            if viewModel.isPinned {
+                enableWindowDragging()
+            }
+        }
+        .onChange(of: viewModel.isPinned) {
+             if viewModel.isPinned {
+                 enableWindowDragging()
+             } else {
+                 disableWindowDragging()
+             }
+         }
         .translationTask(viewModel.configuration) { session in
             // 检查 configuration 是否有效
-            guard let config = viewModel.configuration else { 
+            guard viewModel.configuration != nil else { 
                 print("配置无效")
                 return 
             }
@@ -117,6 +133,7 @@ struct TranslateContentView: View {
                 }
             }
         }
+
     }
     
     private func copyTranslatedText() {
@@ -132,6 +149,20 @@ struct TranslateContentView: View {
         // 2秒后恢复原始图标
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isCopied = false
+        }
+    }
+    
+    // 启用窗口拖拽
+    private func enableWindowDragging() {
+        if let window = Translate.findWindow(Translate.translateWindow) {
+            window.isMovableByWindowBackground = true
+        }
+    }
+    
+    // 禁用窗口拖拽
+    private func disableWindowDragging() {
+        if let window = Translate.findWindow(Translate.translateWindow) {
+            window.isMovableByWindowBackground = false
         }
     }
 }

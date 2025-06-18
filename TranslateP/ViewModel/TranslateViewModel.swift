@@ -91,7 +91,10 @@ class TranslateViewModel: ObservableObject {
             if let window = Translate.findWindow(Translate.translateWindow) {
                 pinnedWindowPosition = window.frame.origin
                 // 设置窗口在所有桌面显示
-                window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+                window.collectionBehavior = [.canJoinAllSpaces]
+                // 启用原生窗口拖拽
+                window.isMovable = true
+                window.isMovableByWindowBackground = true
             }
         } else {
             // 取消 pin 时，清除记录的位置并恢复正常窗口行为
@@ -99,6 +102,8 @@ class TranslateViewModel: ObservableObject {
             if let window = Translate.findWindow(Translate.translateWindow) {
                 // 恢复正常的桌面行为
                 window.collectionBehavior = []
+                window.isMovable = false
+                window.isMovableByWindowBackground = false
             }
         }
         isPinned.toggle()
@@ -241,9 +246,14 @@ class TranslateViewModel: ObservableObject {
                 window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))
             }
             
-            // 如果是 pin 模式，设置窗口在所有桌面显示
+            // 如果是 pin 模式，设置窗口在所有桌面显示并启用拖拽
             if usePinnedPosition && isPinned {
-                window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+                window.collectionBehavior = [.canJoinAllSpaces]
+                window.isMovable = true
+                window.isMovableByWindowBackground = true
+            } else {
+                window.isMovable = false
+                window.isMovableByWindowBackground = false
             }
         }
     }
@@ -261,9 +271,20 @@ class TranslateViewModel: ObservableObject {
         // 在关闭前恢复窗口的正常行为
         if let window = Translate.findWindow(Translate.translateWindow) {
             window.collectionBehavior = []
+            window.isMovable = false
+            window.isMovableByWindowBackground = false
+            // 移除窗口位置监听
+            NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: window)
         }
         isPinned = false
         pinnedWindowPosition = nil
         dismissWindow(id: Translate.translateWindow)
+    }
+    
+    /// 更新被 pin 窗口的位置（用于拖拽后保存新位置）
+    func updatePinnedWindowPosition() {
+        if isPinned, let window = Translate.findWindow(Translate.translateWindow) {
+            pinnedWindowPosition = window.frame.origin
+        }
     }
 }
