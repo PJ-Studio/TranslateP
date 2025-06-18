@@ -13,6 +13,7 @@ struct TranslateContentView: View {
     @StateObject private var speechManager = SpeechManager()
     @State private var isCopied = false
     @State private var wordPhonetics: String? = nil
+    @State private var isTranslationCompleted = false
 
     var body: some View {
         ZStack {
@@ -35,7 +36,7 @@ struct TranslateContentView: View {
 
                 Spacer()
                 
-                if let wordPhonetics = wordPhonetics {
+                if let wordPhonetics = wordPhonetics, isTranslationCompleted, viewModel.isSourceLanguageEnglish {
                     HStack {
                         Text(wordPhonetics)
                             .font(.callout)
@@ -46,22 +47,36 @@ struct TranslateContentView: View {
                 }
                 
                 HStack {
-                    Button(action: {
-                        speechManager.speakText(viewModel.sourceString)
-                    }) {
-                        Image(systemName: speechManager.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
-                            .foregroundColor(.gray)
-                            .fixedSize()
+                    // 只有翻译完成时才显示朗读和复制按钮
+                    if isTranslationCompleted {
+                        Button(action: {
+                            let language = viewModel.isSourceLanguageEnglish ? "en-US" : "zh-CN"
+                            speechManager.speakText(viewModel.sourceString, language: language)
+                        }) {
+                            Image(systemName: speechManager.isSpeaking ? "speaker.wave.2.fill" : "speaker.wave.2")
+                                .foregroundColor(.gray)
+                                .fixedSize()
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Button(action: {
+                            copyTranslatedText()
+                        }) {
+                            Image(systemName: isCopied ? "checkmark" : "document.on.document")
+                                .foregroundColor(.gray)
+                                .fixedSize()
+                                .frame(width: 16, height: 16)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                     
                     Button(action: {
-                        copyTranslatedText()
+                        viewModel.togglePin()
                     }) {
-                        Image(systemName: isCopied ? "checkmark" : "document.on.document")
-                            .foregroundColor(.gray)
+                        Image(systemName: viewModel.isPinned ? "pin.fill" : "pin")
+                            .foregroundColor(viewModel.isPinned ? .blue : .gray)
                             .fixedSize()
-                            .frame(width: 16, height: 16)
+                            .rotationEffect(.degrees(45))
                     }
                     .buttonStyle(.plain)
                     
@@ -72,14 +87,34 @@ struct TranslateContentView: View {
         }
         .fixedSize()
         .translationTask(viewModel.configuration) { session in
+            // 检查 configuration 是否有效
+            guard let config = viewModel.configuration else { 
+                print("配置无效")
+                return 
+            }
+            
+            print("开始翻译: \(viewModel.sourceString), 反转状态: \(viewModel.isLanguageReversed)")
+            
+            // 翻译开始时重置状态
+            DispatchQueue.main.async {
+                isTranslationCompleted = false
+                wordPhonetics = nil
+            }
+            
             do {
                 let resp = try await session.translate(viewModel.sourceString)
+                print("翻译成功: \(resp.targetText)")
                 DispatchQueue.main.async {
                     viewModel.targetString = resp.targetText
-                    wordPhonetics = WordService.getWordPhonetics(for: viewModel.sourceString)
+                    // 只有源语言是英文时才获取音标
+                    wordPhonetics = viewModel.isSourceLanguageEnglish ? WordService.getWordPhonetics(for: viewModel.sourceString) : nil
+                    isTranslationCompleted = true
                 }
             } catch {
                 print("翻译错误: \(error)")
+                DispatchQueue.main.async {
+                    isTranslationCompleted = false
+                }
             }
         }
     }
@@ -95,7 +130,7 @@ struct TranslateContentView: View {
         isCopied = true
         
         // 2秒后恢复原始图标
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isCopied = false
         }
     }
@@ -114,6 +149,6 @@ struct TranslateContentBGView: View {
     
     TranslateContentView(viewModel: viewModel)
     .onAppear {
-        viewModel.targetString = "阿水大师的阿斯顿阿斯顿爱上爱上"
+        viewModel.targetString = "阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿阿水大师的阿斯顿阿"
     }
 }

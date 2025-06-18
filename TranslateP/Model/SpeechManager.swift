@@ -18,7 +18,7 @@ class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         synthesizer.delegate = self
     }
     
-    func speakText(_ text: String) {
+    func speakText(_ text: String, language: String = "en-US") {
         guard !text.isEmpty else { return }
         
         if synthesizer.isSpeaking {
@@ -28,7 +28,7 @@ class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         
         speechQueue.async {
             let utterance = AVSpeechUtterance(string: text)
-            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            utterance.voice = AVSpeechSynthesisVoice(language: language)
             utterance.rate = 0.5
             utterance.volume = 1.0
             
