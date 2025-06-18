@@ -97,12 +97,8 @@ struct MenuView: View {
                         Text("\(Int(viewModel.fontSize))pt")
                             .font(.footnote)
                         
-                        Slider(value: $viewModel.fontSize, in: 10...40) { done in
-                            if done {
-                                
-                            }
-                        }
-                        .controlSize(.small) // 修改滑杆的滑块尺寸为小样式
+                        Slider(value: $viewModel.fontSize, in: 10...40)
+                            .controlSize(.small) // 修改滑杆的滑块尺寸为小样式
                     }
                 }
                 .font(.headline)
