@@ -15,6 +15,15 @@ struct MenuView: View {
     @ObservedObject var viewModel: TranslateViewModel
     
     @State private var keyboardCount = 0
+    @State private var isArrowFlipped = false // 箭头翻转动画状态
+    
+    /// 从 Bundle 获取应用版本号
+    private var appVersion: String {
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            return version
+        }
+        return "1.0"
+    }
 
     
     var body: some View {
@@ -25,24 +34,38 @@ struct MenuView: View {
                         .font(.subheadline)
                     
                     HStack {
-                        Picker("", selection: $targetLang) {
-                            Text("英文").tag(0)
-                                .font(.subheadline)
-                        }
-                        .font(.subheadline)
-                        .frame(width: 100)
-                        .padding(EdgeInsets(top: 0, leading: -15, bottom: 0, trailing: 20))
+                        // 固定显示英文
+                        Text("英文")
+                            .font(.subheadline)
+                            .frame(width: 60, alignment: .leading)
+                            .padding(EdgeInsets(top: 0, leading: -10, bottom: 0, trailing: 0))
                         
-                        Picker(selection: $sourceLang) {
-                            Text("中文").tag(0)
-                                .font(.subheadline)
-                        } label: {
+                        Spacer()
+                        
+                        // 箭头按钮（可点击反转）
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isArrowFlipped.toggle()
+                                viewModel.toggleLanguageDirection()
+                            }
+                        }) {
                             Image(systemName: "arrowshape.right")
+                                .font(.title3)
+                                .foregroundColor(.primary)
+                                .scaleEffect(x: viewModel.isLanguageReversed ? -1 : 1, y: 1)
+                                .animation(.easeInOut(duration: 0.3), value: viewModel.isLanguageReversed)
                         }
-                        .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        // 固定显示中文
+                        Text("中文")
+                            .font(.subheadline)
+                            .frame(width: 60, alignment: .trailing)
+                            .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: -10))
                     }
-                    .foregroundStyle(Color.gray)
+                    .padding(.horizontal, 10)
                     
 //                    VStack {
 //                        Toggle("截图翻译", isOn: $viewModel.screenshotEventOn)
@@ -72,7 +95,6 @@ struct MenuView: View {
                         Text("文字大小")
                             .font(.subheadline)
                         Text("\(Int(viewModel.fontSize))pt")
-                            .foregroundStyle(Color.gray)
                             .font(.footnote)
                         
                         Slider(value: $viewModel.fontSize, in: 10...40) { done in
@@ -98,14 +120,12 @@ struct MenuView: View {
                         .padding(EdgeInsets(top: 0, leading: -25, bottom: 0, trailing: 0))
                 }
                 .font(.footnote)
-                .foregroundStyle(Color.gray)
                 .padding(EdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 0))
 
                 Spacer()
                 
-                Text("软件版本：1.0")
+                Text("软件版本：\(appVersion)")
                     .font(.footnote)
-                    .foregroundStyle(Color.gray)
                     .padding(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 20))
                     .onTapGesture {
                         NSWorkspace.shared.open(URL(string: "http://pjhubs.com")!)
