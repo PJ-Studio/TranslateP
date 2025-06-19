@@ -17,7 +17,18 @@ class TranslateViewModel: ObservableObject {
     
     private var keyboardMonitor: Any?
     private var mouseEventMonitor: Any?
+    private var clipboardMonitor = ClipboardMonitor()
     
+    /// 是否开启双击剪贴板识别截图翻译
+    @Published var clipboardSnapshotOn: Bool = false {
+        didSet {
+            if clipboardSnapshotOn {
+                setupClipboardMonitoring()
+            } else {
+                clipboardMonitor.stopMonitoring()
+            }
+        }
+    }
     /// 是否开启双击 command + c 快捷键监听功能
     @Published var keyboardEventOn: Bool = false
     ///是否开启截图翻译功能
@@ -285,6 +296,35 @@ class TranslateViewModel: ObservableObject {
     func updatePinnedWindowPosition() {
         if isPinned, let window = Translate.findWindow(Translate.translateWindow) {
             pinnedWindowPosition = window.frame.origin
+        }
+    }
+    
+    /// 设置剪贴板监听
+    private func setupClipboardMonitoring() {
+        clipboardMonitor.onImageDetected = { [weak self] image in
+            self?.handleClipboardImage(image)
+        }
+        clipboardMonitor.startMonitoring()
+    }
+    
+    /// 处理剪贴板中的图片
+    private func handleClipboardImage(_ image: NSImage) {
+        OCRService.recognizeText(from: image) { [weak self] recognizedText in
+            guard let self = self,
+                  let text = recognizedText,
+                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return
+            }
+            
+            // 设置识别出的文字作为源文字
+            self.sourceString = text
+            self.targetString = TranslateViewModel.DefualtTextString
+            
+            // 显示翻译窗口
+            self.showWindowAtMouse()
+            
+            // 触发翻译
+            self.triggerTranslation()
         }
     }
 }
