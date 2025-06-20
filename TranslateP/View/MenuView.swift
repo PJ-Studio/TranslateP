@@ -33,6 +33,9 @@ struct MenuView: View {
                     Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
                         .font(.subheadline)
                     
+                    Toggle("剪贴板截图翻译", isOn: $viewModel.clipboardSnapshotOn)
+                        .font(.subheadline)
+                    
                     HStack {
                         // 固定显示英文
                         Text("英文")
