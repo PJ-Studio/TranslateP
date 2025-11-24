@@ -8,7 +8,7 @@
 - 窗口固定与移动：Pin 不丢失、背景拖拽移动。
 - 原生优先：Translation / AVFoundation / Vision / Dictionary Services。
 
-把事做小，把体验做深。欢迎 Issue / PR。
+把事做小，把体验做深。欢迎 Issue / PR，app store 下载链接 [>>](https://apps.apple.com/cn/app/translatep/id6737735627)
 
 > 更多开发故事详见 [做了一个翻译软件](https://pjhubs.com/2024/11/03/translatep-init/)、[最后一块拼图](https://pjhubs.com/2025/06/21/translatep-release-1.0.3/)
 
@@ -20,6 +20,6 @@
 - Pin & move the translation window effortlessly
 - Apple-native first: Translation / AVFoundation / Vision / Dictionary Services
 
-Do one thing, do it well. Contributions are welcome.
+Do one thing, do it well. Contributions are welcome，app store link [>>](https://apps.apple.com/cn/app/translatep/id6737735627)
 
 > See more developer stories [做了一个翻译软件](https://pjhubs.com/2024/11/03/translatep-init/)、[最后一块拼图](https://pjhubs.com/2025/06/21/translatep-release-1.0.3/)
