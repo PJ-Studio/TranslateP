@@ -8,10 +8,6 @@
 
 把事做小，把体验做深。欢迎 Issue / PR。
 
----
-
-## 3) GitHub README 开头简介（English）
-
 **TranslateP — A minimalist translation utility for macOS**
 
 - Instant translation via keyboard shortcuts
