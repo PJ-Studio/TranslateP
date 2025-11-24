@@ -1,3 +1,5 @@
+![](/TranslateP_resources/posters/2.0/2.jpg )
+
 **TranslateP — macOS 上的极简翻译工具**
 
 - 快捷键即时翻译：减少来回切应用与粘贴。
@@ -8,6 +10,8 @@
 
 把事做小，把体验做深。欢迎 Issue / PR。
 
+> 更多开发故事详见 [做了一个翻译软件](https://pjhubs.com/2024/11/03/translatep-init/)、[最后一块拼图](https://pjhubs.com/2025/06/21/translatep-release-1.0.3/)
+
 **TranslateP — A minimalist translation utility for macOS**
 
 - Instant translation via keyboard shortcuts
@@ -17,3 +21,5 @@
 - Apple-native first: Translation / AVFoundation / Vision / Dictionary Services
 
 Do one thing, do it well. Contributions are welcome.
+
+> See more developer stories [做了一个翻译软件](https://pjhubs.com/2024/11/03/translatep-init/)、[最后一块拼图](https://pjhubs.com/2025/06/21/translatep-release-1.0.3/)
