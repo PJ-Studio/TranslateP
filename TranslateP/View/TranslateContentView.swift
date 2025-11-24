@@ -95,6 +95,9 @@ struct TranslateContentView: View {
                 enableWindowDragging()
             }
         }
+        .onDisappear(perform: {
+            speechManager.stopSpeaking()
+        })
         .onChange(of: viewModel.isPinned) {
              if viewModel.isPinned {
                  enableWindowDragging()
