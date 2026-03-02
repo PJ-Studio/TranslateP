@@ -45,6 +45,100 @@ class TranslateViewModel: ObservableObject {
     private var pinnedWindowPosition: NSPoint?
     /// 是否反转语言（true: 中文->英文，false: 英文->中文）
     @Published var isLanguageReversed: Bool = false
+    /// 查词输入框内容
+    @Published var searchText: String = "" {
+        didSet {
+            if searchText.isEmpty {
+                searchResult = ""
+                searchPhonetics = nil
+            }
+        }
+    }
+    /// 查词结果
+    @Published var searchResult: String = ""
+    /// 查词音标
+    @Published var searchPhonetics: String? = nil
+    
+    /// 翻译窗口固定宽度
+    let translateWindowWidth: CGFloat = 300
+    /// 翻译结果窗口最大高度（默认 1000，且受屏幕高度限制）
+    var maxTranslateWindowHeight: CGFloat {
+        let screenHeight = (Translate.findWindow(Translate.translateWindow)?.screen ?? NSScreen.main)?.visibleFrame.height ?? 800
+        // 最大不超过 1000，且保留 60pt 的边距
+        return min(500, screenHeight - 60)
+    }
+    
+    /// 根据当前内容和字体大小估算出的高度（仅文本部分）
+    var estimatedTextHeight: CGFloat {
+        if targetString == TranslateViewModel.DefualtTextString || targetString.isEmpty {
+            return 40 // 默认初始高度
+        }
+        
+        let text = targetString
+        let font = NSFont.systemFont(ofSize: fontSize)
+        // 减去 Text 组件的内边距 (leading: 10)
+        let contentWidth = translateWindowWidth - 10
+        
+        let constraintRect = CGSize(width: contentWidth, height: .greatestFiniteMagnitude)
+        let boundingBox = text.boundingRect(with: constraintRect, 
+                                          options: [.usesLineFragmentOrigin, .usesFontLeading], 
+                                          attributes: [.font: font], 
+                                          context: nil)
+        
+        // 文本内边距：top 15 + bottom 5 = 20
+        let textPadding: CGFloat = 20
+        
+        return ceil(boundingBox.height) + textPadding
+    }
+
+    /// 自动调整窗口位置，确保不超出屏幕边缘
+    func adjustWindowPosition() {
+        // 稍作延迟，等待 SwiftUI 渲染完成并更新 window frame
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // 稍微增加一点延迟，确保渲染完成
+            guard let window = Translate.findWindow(Translate.translateWindow) else { return }
+            // 使用窗口所在的屏幕，如果找不到则使用主屏幕
+            let screen = window.screen ?? NSScreen.main
+            let screenFrame = screen?.visibleFrame ?? .zero
+            let windowFrame = window.frame
+            
+            var newOrigin = windowFrame.origin
+            
+            // 1. 检查高度是否超出当前屏幕可见高度
+            if windowFrame.height > screenFrame.height {
+                // 如果窗口本身比屏幕还高（虽然我们已经限制了，但作为兜底），设置起始位置为屏幕顶部
+                newOrigin.y = screenFrame.maxY - windowFrame.height
+            } else {
+                // 2. 检查顶部是否超出
+                if windowFrame.maxY > screenFrame.maxY {
+                    newOrigin.y = screenFrame.maxY - windowFrame.height
+                }
+                
+                // 3. 检查底部是否超出
+                if newOrigin.y < screenFrame.minY {
+                    newOrigin.y = screenFrame.minY
+                }
+            }
+            
+            // 4. 检查右侧是否超出
+            if windowFrame.maxX > screenFrame.maxX {
+                newOrigin.x = screenFrame.maxX - windowFrame.width
+            }
+            
+            // 5. 检查左侧是否超出
+            if newOrigin.x < screenFrame.minX {
+                newOrigin.x = screenFrame.minX
+            }
+            
+            if newOrigin != windowFrame.origin {
+                window.setFrameOrigin(newOrigin)
+                
+                // 如果是 Pin 模式，同步更新记录的位置
+                if self.isPinned {
+                    self.pinnedWindowPosition = newOrigin
+                }
+            }
+        }
+    }
 
     
     @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
@@ -82,6 +176,39 @@ class TranslateViewModel: ObservableObject {
         }
         
         lastCommandCTime = now
+    }
+    
+    /// 查词
+    func searchWord() {
+        guard !searchText.isEmpty else { return }
+        
+        // 触发翻译
+        let (sourceLanguage, targetLanguage) = isLanguageReversed
+            ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))
+            : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))
+        
+        if #available(macOS 15.0, *) {
+            // 确保在主线程触发配置更新，避免多线程导致的 UI 崩溃
+            DispatchQueue.main.async {
+                // 重新使用 Configuration 触发机制，但确保每次都强制更新
+                self.configuration?.invalidate()
+                // 故意延迟一小会儿，确保 UI 线程能够感知到 configuration 的变化
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.configuration = .init(source: sourceLanguage, target: targetLanguage)
+                    
+                    // 如果源语言是英文，则获取音标
+                    if !self.isLanguageReversed {
+                        self.searchPhonetics = WordService.getWordPhonetics(for: self.searchText)
+                    } else {
+                        self.searchPhonetics = nil
+                    }
+                }
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.searchResult = "当前系统版本不支持翻译功能"
+            }
+        }
     }
     
     func triggerTranslation() {
@@ -127,7 +254,20 @@ class TranslateViewModel: ObservableObject {
         let (sourceLanguage, targetLanguage) = isLanguageReversed
             ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))  // 中文->英文
             : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))  // 英文->中文
-        configuration = .init(source: sourceLanguage, target: targetLanguage)
+        
+        // 确保在主线程更新 UI 相关的 configuration，防止 NSStatusItem 等系统 UI 控件发生多线程崩溃
+        DispatchQueue.main.async {
+            if self.configuration == nil {
+                self.configuration = .init(source: sourceLanguage, target: targetLanguage)
+            } else {
+                self.configuration?.invalidate()
+            }
+        }
+        
+        // 如果查词框有内容，切换语言时自动触发一次重新查询
+        if !searchText.isEmpty {
+            searchWord()
+        }
     }
     
     /// 当前源语言是否为英文
@@ -182,7 +322,7 @@ class TranslateViewModel: ObservableObject {
             guard let self = self else { return }
             
             // 如果窗口已存在
-            if let existingWindow = Translate.findWindow(Translate.translateWindow) {
+            if Translate.findWindow(Translate.translateWindow) != nil {
                 if self.isPinned {
                     // 如果窗口被 pin，直接在原地更新内容，不关闭窗口
                     // 窗口已经存在且被 pin，直接触发翻译即可
@@ -211,7 +351,7 @@ class TranslateViewModel: ObservableObject {
         openWindow(id: Translate.translateWindow)
         
         if let window = Translate.findWindow(Translate.translateWindow) {
-            let screenFrame = NSScreen.main?.frame ?? .zero
+            let screenFrame = NSScreen.main?.visibleFrame ?? .zero
             
             if usePinnedPosition, let pinnedPosition = pinnedWindowPosition {
                 // 使用之前 pin 的位置
@@ -225,7 +365,7 @@ class TranslateViewModel: ObservableObject {
                 if x < screenFrame.minX {
                     x = screenFrame.minX
                 }
-                if y > screenFrame.maxY {
+                if y + 100 > screenFrame.maxY {
                     y = screenFrame.maxY - 100
                 }
                 if y < screenFrame.minY {
@@ -247,11 +387,13 @@ class TranslateViewModel: ObservableObject {
                 if x < screenFrame.minX {
                     x = screenFrame.minX
                 }
+                
+                // 确保 y 轴位置合理，且窗口底部不超出屏幕
                 if y + contentHeight > screenFrame.maxY {
                     y = screenFrame.maxY - contentHeight
                 }
-                if y < screenFrame.minY {
-                    y = screenFrame.minY
+                if y - contentHeight < screenFrame.minY {
+                    y = screenFrame.minY + contentHeight
                 }
                 
                 window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))

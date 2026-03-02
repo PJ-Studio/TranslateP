@@ -34,11 +34,10 @@ struct TranslateContentView: View {
                         Spacer()
                     }
                 }
-                .frame(minWidth: 70, maxWidth: 300, minHeight: 40, maxHeight: 500)
+                .frame(width: viewModel.translateWindowWidth)
+                .frame(height: min(viewModel.estimatedTextHeight, viewModel.maxTranslateWindowHeight))
                 .scrollIndicators(.never)
 
-                Spacer()
-                
                 if let wordPhonetics = wordPhonetics, isTranslationCompleted, viewModel.isSourceLanguageEnglish {
                     HStack {
                         Text(wordPhonetics)
@@ -105,6 +104,9 @@ struct TranslateContentView: View {
                  disableWindowDragging()
              }
          }
+        .onChange(of: viewModel.fontSize) {
+            viewModel.adjustWindowPosition()
+        }
         .translationTask(viewModel.configuration) { session in
             // 检查 configuration 是否有效
             guard viewModel.configuration != nil else { 
@@ -128,6 +130,7 @@ struct TranslateContentView: View {
                     // 只有源语言是英文时才获取音标
                     wordPhonetics = viewModel.isSourceLanguageEnglish ? WordService.getWordPhonetics(for: viewModel.sourceString) : nil
                     isTranslationCompleted = true
+                    viewModel.adjustWindowPosition()
                 }
             } catch {
                 print("翻译错误: \(error)")
