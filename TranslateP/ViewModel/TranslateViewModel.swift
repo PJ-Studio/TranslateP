@@ -45,6 +45,20 @@ class TranslateViewModel: ObservableObject {
     private var pinnedWindowPosition: NSPoint?
     /// 是否反转语言（true: 中文->英文，false: 英文->中文）
     @Published var isLanguageReversed: Bool = false
+    /// 查词输入框内容
+    @Published var searchText: String = "" {
+        didSet {
+            if searchText.isEmpty {
+                searchResult = ""
+                searchPhonetics = nil
+            }
+        }
+    }
+    /// 查词结果
+    @Published var searchResult: String = ""
+    /// 查词音标
+    @Published var searchPhonetics: String? = nil
+    
     /// 翻译窗口固定宽度
     let translateWindowWidth: CGFloat = 300
     /// 翻译结果窗口最大高度（默认 1000，且受屏幕高度限制）
@@ -164,6 +178,39 @@ class TranslateViewModel: ObservableObject {
         lastCommandCTime = now
     }
     
+    /// 查词
+    func searchWord() {
+        guard !searchText.isEmpty else { return }
+        
+        // 触发翻译
+        let (sourceLanguage, targetLanguage) = isLanguageReversed
+            ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))
+            : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))
+        
+        if #available(macOS 15.0, *) {
+            // 确保在主线程触发配置更新，避免多线程导致的 UI 崩溃
+            DispatchQueue.main.async {
+                // 重新使用 Configuration 触发机制，但确保每次都强制更新
+                self.configuration?.invalidate()
+                // 故意延迟一小会儿，确保 UI 线程能够感知到 configuration 的变化
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.configuration = .init(source: sourceLanguage, target: targetLanguage)
+                    
+                    // 如果源语言是英文，则获取音标
+                    if !self.isLanguageReversed {
+                        self.searchPhonetics = WordService.getWordPhonetics(for: self.searchText)
+                    } else {
+                        self.searchPhonetics = nil
+                    }
+                }
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.searchResult = "当前系统版本不支持翻译功能"
+            }
+        }
+    }
+    
     func triggerTranslation() {
         let (sourceLanguage, targetLanguage) = isLanguageReversed 
             ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))  // 中文->英文
@@ -207,7 +254,20 @@ class TranslateViewModel: ObservableObject {
         let (sourceLanguage, targetLanguage) = isLanguageReversed
             ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))  // 中文->英文
             : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))  // 英文->中文
-        configuration = .init(source: sourceLanguage, target: targetLanguage)
+        
+        // 确保在主线程更新 UI 相关的 configuration，防止 NSStatusItem 等系统 UI 控件发生多线程崩溃
+        DispatchQueue.main.async {
+            if self.configuration == nil {
+                self.configuration = .init(source: sourceLanguage, target: targetLanguage)
+            } else {
+                self.configuration?.invalidate()
+            }
+        }
+        
+        // 如果查词框有内容，切换语言时自动触发一次重新查询
+        if !searchText.isEmpty {
+            searchWord()
+        }
     }
     
     /// 当前源语言是否为英文
@@ -262,7 +322,7 @@ class TranslateViewModel: ObservableObject {
             guard let self = self else { return }
             
             // 如果窗口已存在
-            if let existingWindow = Translate.findWindow(Translate.translateWindow) {
+            if Translate.findWindow(Translate.translateWindow) != nil {
                 if self.isPinned {
                     // 如果窗口被 pin，直接在原地更新内容，不关闭窗口
                     // 窗口已经存在且被 pin，直接触发翻译即可
