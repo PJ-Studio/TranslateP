@@ -160,7 +160,7 @@ struct MenuView: View {
                         
                         Spacer()
                         
-                        Text("软件版本：1.0.4")
+                        Text("软件版本：\(appVersion)")
                             .foregroundColor(.secondary)
                             .font(.footnote)
                     }
