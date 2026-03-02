@@ -45,6 +45,86 @@ class TranslateViewModel: ObservableObject {
     private var pinnedWindowPosition: NSPoint?
     /// 是否反转语言（true: 中文->英文，false: 英文->中文）
     @Published var isLanguageReversed: Bool = false
+    /// 翻译窗口固定宽度
+    let translateWindowWidth: CGFloat = 300
+    /// 翻译结果窗口最大高度（默认 1000，且受屏幕高度限制）
+    var maxTranslateWindowHeight: CGFloat {
+        let screenHeight = (Translate.findWindow(Translate.translateWindow)?.screen ?? NSScreen.main)?.visibleFrame.height ?? 800
+        // 最大不超过 1000，且保留 60pt 的边距
+        return min(500, screenHeight - 60)
+    }
+    
+    /// 根据当前内容和字体大小估算出的高度（仅文本部分）
+    var estimatedTextHeight: CGFloat {
+        if targetString == TranslateViewModel.DefualtTextString || targetString.isEmpty {
+            return 40 // 默认初始高度
+        }
+        
+        let text = targetString
+        let font = NSFont.systemFont(ofSize: fontSize)
+        // 减去 Text 组件的内边距 (leading: 10)
+        let contentWidth = translateWindowWidth - 10
+        
+        let constraintRect = CGSize(width: contentWidth, height: .greatestFiniteMagnitude)
+        let boundingBox = text.boundingRect(with: constraintRect, 
+                                          options: [.usesLineFragmentOrigin, .usesFontLeading], 
+                                          attributes: [.font: font], 
+                                          context: nil)
+        
+        // 文本内边距：top 15 + bottom 5 = 20
+        let textPadding: CGFloat = 20
+        
+        return ceil(boundingBox.height) + textPadding
+    }
+
+    /// 自动调整窗口位置，确保不超出屏幕边缘
+    func adjustWindowPosition() {
+        // 稍作延迟，等待 SwiftUI 渲染完成并更新 window frame
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // 稍微增加一点延迟，确保渲染完成
+            guard let window = Translate.findWindow(Translate.translateWindow) else { return }
+            // 使用窗口所在的屏幕，如果找不到则使用主屏幕
+            let screen = window.screen ?? NSScreen.main
+            let screenFrame = screen?.visibleFrame ?? .zero
+            let windowFrame = window.frame
+            
+            var newOrigin = windowFrame.origin
+            
+            // 1. 检查高度是否超出当前屏幕可见高度
+            if windowFrame.height > screenFrame.height {
+                // 如果窗口本身比屏幕还高（虽然我们已经限制了，但作为兜底），设置起始位置为屏幕顶部
+                newOrigin.y = screenFrame.maxY - windowFrame.height
+            } else {
+                // 2. 检查顶部是否超出
+                if windowFrame.maxY > screenFrame.maxY {
+                    newOrigin.y = screenFrame.maxY - windowFrame.height
+                }
+                
+                // 3. 检查底部是否超出
+                if newOrigin.y < screenFrame.minY {
+                    newOrigin.y = screenFrame.minY
+                }
+            }
+            
+            // 4. 检查右侧是否超出
+            if windowFrame.maxX > screenFrame.maxX {
+                newOrigin.x = screenFrame.maxX - windowFrame.width
+            }
+            
+            // 5. 检查左侧是否超出
+            if newOrigin.x < screenFrame.minX {
+                newOrigin.x = screenFrame.minX
+            }
+            
+            if newOrigin != windowFrame.origin {
+                window.setFrameOrigin(newOrigin)
+                
+                // 如果是 Pin 模式，同步更新记录的位置
+                if self.isPinned {
+                    self.pinnedWindowPosition = newOrigin
+                }
+            }
+        }
+    }
 
     
     @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
@@ -211,7 +291,7 @@ class TranslateViewModel: ObservableObject {
         openWindow(id: Translate.translateWindow)
         
         if let window = Translate.findWindow(Translate.translateWindow) {
-            let screenFrame = NSScreen.main?.frame ?? .zero
+            let screenFrame = NSScreen.main?.visibleFrame ?? .zero
             
             if usePinnedPosition, let pinnedPosition = pinnedWindowPosition {
                 // 使用之前 pin 的位置
@@ -225,7 +305,7 @@ class TranslateViewModel: ObservableObject {
                 if x < screenFrame.minX {
                     x = screenFrame.minX
                 }
-                if y > screenFrame.maxY {
+                if y + 100 > screenFrame.maxY {
                     y = screenFrame.maxY - 100
                 }
                 if y < screenFrame.minY {
@@ -247,11 +327,13 @@ class TranslateViewModel: ObservableObject {
                 if x < screenFrame.minX {
                     x = screenFrame.minX
                 }
+                
+                // 确保 y 轴位置合理，且窗口底部不超出屏幕
                 if y + contentHeight > screenFrame.maxY {
                     y = screenFrame.maxY - contentHeight
                 }
-                if y < screenFrame.minY {
-                    y = screenFrame.minY
+                if y - contentHeight < screenFrame.minY {
+                    y = screenFrame.minY + contentHeight
                 }
                 
                 window.setFrameOrigin(NSPoint(x: x, y: y - contentHeight))

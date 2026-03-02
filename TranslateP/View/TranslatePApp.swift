@@ -31,6 +31,7 @@ struct TranslatePApp: App {
         .windowStyle(.plain) // 设置 window 类型为只有内容，其他都不要
         .windowLevel(.floating)
         .defaultPosition(.center)
+        .windowResizability(.contentSize)
         
         Window("下载词典", id: Translate.downloadDictWindow) {
             DownloadDictView(viewModel: viewModel)
