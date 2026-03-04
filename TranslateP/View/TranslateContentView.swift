@@ -132,6 +132,8 @@ struct TranslateContentView: View {
                     isTranslationCompleted = true
                     viewModel.adjustWindowPosition()
                 }
+            } catch is CancellationError {
+                // 忽略取消错误
             } catch {
                 print("翻译错误: \(error)")
                 DispatchQueue.main.async {

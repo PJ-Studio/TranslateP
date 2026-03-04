@@ -13,12 +13,13 @@ class ClipboardMonitor: ObservableObject {
     private var lastChangeCount: Int = 0
     
     var onImageDetected: ((NSImage) -> Void)?
+    var onTextDetected: ((String) -> Void)?
     
     /// 开始监听剪贴板
     func startMonitoring() {
         lastChangeCount = NSPasteboard.general.changeCount
         
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.checkClipboard()
         }
     }
@@ -39,6 +40,9 @@ class ClipboardMonitor: ObservableObject {
             // 检查是否包含图片
             if let image = getImageFromPasteboard() {
                 onImageDetected?(image)
+            } else if let text = pasteboard.string(forType: .string), !text.isEmpty {
+                // 检查是否包含文字
+                onTextDetected?(text)
             }
         }
     }

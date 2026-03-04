@@ -176,13 +176,13 @@ struct MenuView: View {
             do {
                 let response = try await session.translate(viewModel.searchText)
                 viewModel.searchResult = response.targetText
+            } catch is CancellationError {
+                // 忽略取消错误
             } catch {
                 viewModel.searchResult = "查询失败: \(error.localizedDescription)"
             }
         }
         .onAppear {
-            viewModel.setupKeyboardMonitoring()
-            viewModel.setupMouseMonitoring()
         }
         .onDisappear {
             speechManager.stopSpeaking()
