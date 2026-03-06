@@ -96,7 +96,7 @@ struct WordRowView: View {
                     Text(entry.source)
                         .font(.headline)
                     
-                    if let phonetic = entry.phonetic, !phonetic.isEmpty {
+                    if let phonetic = entry.phonetic, !phonetic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Text(phonetic)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -116,22 +116,21 @@ struct WordRowView: View {
                     .font(.body)
                     .foregroundColor(.secondary)
             }
-            
-            Spacer()
-            
-            if isHovering {
-                Button(action: {
-                    viewModel.delete(entry)
-                }) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.plain)
-                .help("删除")
+            Spacer(minLength: 0)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button(action: {
+                viewModel.delete(entry)
+            }) {
+                Image(systemName: "trash")
+                    .foregroundColor(.red)
             }
+            .buttonStyle(.plain)
+            .help("删除")
+            .opacity(isHovering ? 1 : 0)
         }
         .padding(.vertical, 4)
-        .contentShape(Rectangle()) // Make the whole row hoverable
+        .contentShape(Rectangle())
         .onHover { hovering in
             isHovering = hovering
         }

@@ -116,10 +116,13 @@ class WordBookManager {
                 
                 for entry in sections[dateKey] ?? [] {
                     fileContent += "\n### \(entry.source)\n"
-                    fileContent += "- 音标: \(entry.phonetic ?? "无")\n"
+                    if let phon = entry.phonetic, !phon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        fileContent += "- 音标: \(phon)\n"
+                    }
                     fileContent += "- 译文: \(entry.target)"
                 }
             }
+            
             
             fileContent += "\n"
             try fileContent.write(to: fileURL, atomically: true, encoding: .utf8)
@@ -176,7 +179,8 @@ class WordBookManager {
                 currentPhonetic = nil
                 currentTarget = nil
             } else if trimmedLine.hasPrefix("- 音标: ") {
-                currentPhonetic = String(trimmedLine.dropFirst(6))
+                let phon = String(trimmedLine.dropFirst(6)).trimmingCharacters(in: .whitespaces)
+                currentPhonetic = (phon.isEmpty || phon == "无") ? nil : phon
             } else if trimmedLine.hasPrefix("- 译文: ") {
                 currentTarget = String(trimmedLine.dropFirst(6))
             }
@@ -214,7 +218,9 @@ class WordBookManager {
             if let entriesForDate = grouped[dateString] {
                 for word in entriesForDate {
                     fileContent += "\n### \(word.source)\n"
-                    fileContent += "- 音标: \(word.phonetic ?? "无")\n"
+                    if let phon = word.phonetic, !phon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        fileContent += "- 音标: \(phon)\n"
+                    }
                     fileContent += "- 译文: \(word.target)" // 避免多余换行
                 }
             }

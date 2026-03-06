@@ -38,7 +38,7 @@ struct TranslatePApp: App {
         
         Window("单词本", id: Translate.wordBookWindow) {
             WordBookView()
-                .frame(minWidth: 500, minHeight: 400)
+                .frame(minWidth: 500, maxWidth: 900, minHeight: 400, maxHeight: 700)
         }
         .defaultPosition(.center)
         .windowResizability(.contentSize)
