@@ -49,6 +49,20 @@ struct MenuView: View {
                         Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
                         Toggle("剪贴板截图翻译", isOn: $viewModel.clipboardSnapshotOn)
                         
+                        Toggle("自动保存到单词本", isOn: $viewModel.autoSaveToWordBook)
+                        
+                        HStack {
+                            Text("单词本")
+                            Spacer()
+                            Button(action: {
+                                viewModel.openWordBookWindow()
+                            }) {
+                                Image(systemName: "book.closed")
+                                    .foregroundColor(.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        
                         HStack {
                             Text("英文")
                             Spacer()

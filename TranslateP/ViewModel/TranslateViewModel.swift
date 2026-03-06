@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Translation
+import AppKit
 
 class TranslateViewModel: ObservableObject {
     var openWindowAction: OpenWindowAction?
@@ -56,8 +57,21 @@ class TranslateViewModel: ObservableObject {
     /// 查词音标
     @Published var searchPhonetics: String? = nil
     
+    @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
+    @Published var dictDownloaded: Bool = UserDefaults.standard.bool(forKey: Translate.hasDownloadedDict)
+    
+    /// 是否开启自动保存到单词本
+    @Published var autoSaveToWordBook: Bool = UserDefaults.standard.bool(forKey: Translate.autoSaveToWordBook) {
+        didSet {
+            UserDefaults.standard.set(autoSaveToWordBook, forKey: Translate.autoSaveToWordBook)
+        }
+    }
+    
+    @Published var permissionDisplayString: String = "给 TranslateP 添加访问“辅助功能”权限"
+    
     /// 翻译窗口固定宽度
     let translateWindowWidth: CGFloat = 300
+
     /// 翻译结果窗口最大高度（默认 1000，且受屏幕高度限制）
     var maxTranslateWindowHeight: CGFloat {
         let screenHeight = (Translate.findWindow(Translate.translateWindow)?.screen ?? NSScreen.main)?.visibleFrame.height ?? 800
@@ -468,5 +482,23 @@ class TranslateViewModel: ObservableObject {
             // 触发翻译
             self.triggerTranslation()
         }
+    }
+    
+    func saveToWordBookIfNeeded(source: String, target: String, phonetic: String?) {
+        guard autoSaveToWordBook else { return }
+        
+        let folderURL = Translate.wordBookFolderURL()
+        let targetLanguage = isLanguageReversed ? "English" : "中文"
+        
+        DispatchQueue.global(qos: .background).async {
+            WordBookManager.shared.save(source: source, target: target, phonetic: phonetic, targetLanguage: targetLanguage, to: folderURL)
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: Translate.wordBookDidUpdate, object: nil)
+            }
+        }
+    }
+    
+    func openWordBookWindow() {
+        openWindowAction?(id: Translate.wordBookWindow)
     }
 }
