@@ -54,40 +54,74 @@ class WordBookManager {
         
         let dateString = dateFormatter.string(from: Date())
         
-        // 构建新单词内容
-        let newContent = """
-        
-        ### \(source)
-        - 音标: \(phonetic ?? "无")
-        - 译文: \(target)
-        """
-        
         do {
             try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
-            var fileContent = ""
-            if FileManager.default.fileExists(atPath: fileURL.path) {
-                fileContent = try String(contentsOf: fileURL, encoding: .utf8)
-            }
+            var sections: [String: [WordEntry]] = [:]
             
-            // 检查今天日期的 section 是否存在
-            let dateHeader = "# \(dateString)"
-            
-            if !fileContent.contains(dateHeader) {
-                // 如果文件不为空且最后没有换行，加两个换行
-                if !fileContent.isEmpty {
-                    if !fileContent.hasSuffix("\n\n") {
-                         if fileContent.hasSuffix("\n") {
-                             fileContent += "\n"
-                         } else {
-                             fileContent += "\n\n"
-                         }
+            if FileManager.default.fileExists(atPath: fileURL.path),
+               let content = try? String(contentsOf: fileURL, encoding: .utf8) {
+                let lines = content.components(separatedBy: .newlines)
+                
+                var currentDateString: String?
+                var currentSource: String?
+                var currentPhonetic: String?
+                var currentTarget: String?
+                
+                func flushEntry() {
+                    guard let dateString = currentDateString,
+                          let date = dateFormatter.date(from: dateString),
+                          let source = currentSource,
+                          let target = currentTarget else { return }
+                    
+                    let entry = WordEntry(source: source, target: target, phonetic: currentPhonetic, date: date)
+                    sections[dateString, default: []].append(entry)
+                }
+                
+                for line in lines {
+                    let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+                    
+                    if trimmedLine.hasPrefix("# ") {
+                        flushEntry()
+                        currentSource = nil
+                        currentPhonetic = nil
+                        currentTarget = nil
+                        currentDateString = String(trimmedLine.dropFirst(2))
+                    } else if trimmedLine.hasPrefix("### ") {
+                        flushEntry()
+                        currentSource = String(trimmedLine.dropFirst(4))
+                        currentPhonetic = nil
+                        currentTarget = nil
+                    } else if trimmedLine.hasPrefix("- 音标: ") {
+                        currentPhonetic = String(trimmedLine.dropFirst(6))
+                    } else if trimmedLine.hasPrefix("- 译文: ") {
+                        currentTarget = String(trimmedLine.dropFirst(6))
                     }
                 }
-                fileContent += "\(dateHeader)\n"
+                
+                flushEntry()
             }
             
-            fileContent += newContent
+            let todayDate = dateFormatter.date(from: dateString) ?? Date()
+            let newEntry = WordEntry(source: source, target: target, phonetic: phonetic, date: todayDate)
+            sections[dateString, default: []].insert(newEntry, at: 0)
             
+            let sortedDates = sections.keys.sorted(by: >)
+            var fileContent = ""
+            
+            for (index, dateKey) in sortedDates.enumerated() {
+                if index > 0 {
+                    fileContent += "\n\n"
+                }
+                fileContent += "# \(dateKey)\n"
+                
+                for entry in sections[dateKey] ?? [] {
+                    fileContent += "\n### \(entry.source)\n"
+                    fileContent += "- 音标: \(entry.phonetic ?? "无")\n"
+                    fileContent += "- 译文: \(entry.target)"
+                }
+            }
+            
+            fileContent += "\n"
             try fileContent.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
             print("保存单词本失败: \(error)")
@@ -151,8 +185,7 @@ class WordBookManager {
         // 循环结束后保存最后一个单词
         saveCurrentEntry()
         
-        // 按日期倒序排列（最近的在前面）
-        return entries.sorted { $0.date > $1.date }
+        return entries
     }
     
     /// 删除单词（重新写入文件）
@@ -171,10 +204,9 @@ class WordBookManager {
         
         // 按日期分组
         let grouped = Dictionary(grouping: allEntries, by: { dateFormatter.string(from: $0.date) })
-        // 按日期升序排列写入文件，保持从旧到新的日志风格
-        let sortedDatesAsc = grouped.keys.sorted()
+        let sortedDatesDesc = grouped.keys.sorted(by: >)
         
-        for (index, dateString) in sortedDatesAsc.enumerated() {
+        for (index, dateString) in sortedDatesDesc.enumerated() {
             if index > 0 {
                 fileContent += "\n\n"
             }

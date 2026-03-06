@@ -499,6 +499,14 @@ class TranslateViewModel: ObservableObject {
     }
     
     func openWordBookWindow() {
+        NSApplication.shared.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
         openWindowAction?(id: Translate.wordBookWindow)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            if let window = Translate.findWindow(Translate.wordBookWindow) {
+                window.makeKeyAndOrderFront(nil)
+                window.orderFrontRegardless()
+            }
+        }
     }
 }

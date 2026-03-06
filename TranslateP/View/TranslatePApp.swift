@@ -22,6 +22,7 @@ struct TranslatePApp: App {
                 .onAppear {
                     viewModel.openWindowAction = openWindow
                     viewModel.dismissWindowAction = dismissWindow
+                    NSApplication.shared.setActivationPolicy(.accessory)
                 }
         }
         .menuBarExtraStyle(.window)

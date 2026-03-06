@@ -61,6 +61,9 @@ struct WordBookView: View {
         .onAppear {
             viewModel.loadLanguages()
         }
+        .onDisappear {
+            NSApplication.shared.setActivationPolicy(.accessory)
+        }
     }
 }
 
@@ -164,7 +167,14 @@ class WordBookViewModel: ObservableObject {
     }
     
     func loadLanguages() {
-        let newLanguages = WordBookManager.shared.getAvailableLanguages(from: folderURL)
+        var newLanguages = WordBookManager.shared.getAvailableLanguages(from: folderURL)
+        let preferredOrder = ["English", "中文"]
+        newLanguages.sort { a, b in
+            let ia = preferredOrder.firstIndex(of: a) ?? preferredOrder.count
+            let ib = preferredOrder.firstIndex(of: b) ?? preferredOrder.count
+            if ia != ib { return ia < ib }
+            return a.localizedStandardCompare(b) == .orderedAscending
+        }
         
         // 只有当语言列表发生变化时才更新，避免不必要的刷新
         if newLanguages != languages {
