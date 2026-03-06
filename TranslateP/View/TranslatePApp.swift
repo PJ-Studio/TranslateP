@@ -13,14 +13,16 @@ import Translation
 @main
 struct TranslatePApp: App {
     @StateObject var viewModel = TranslateViewModel()
+    @Environment(\.openWindow) var openWindow
+    @Environment(\.dismissWindow) var dismissWindow
     
     var body: some Scene {
         MenuBarExtra("App", systemImage: "translate") {
-            if viewModel.hasPermission && viewModel.dictDownloaded {
-                MenuView(viewModel: viewModel)
-            } else {
-                ConfigSettingsView(viewModel: viewModel)
-            }
+            MenuView(viewModel: viewModel)
+                .onAppear {
+                    viewModel.openWindowAction = openWindow
+                    viewModel.dismissWindowAction = dismissWindow
+                }
         }
         .menuBarExtraStyle(.window)
         .windowResizability(.contentSize)
@@ -32,37 +34,5 @@ struct TranslatePApp: App {
         .windowLevel(.floating)
         .defaultPosition(.center)
         .windowResizability(.contentSize)
-        
-        Window("下载词典", id: Translate.downloadDictWindow) {
-            DownloadDictView(viewModel: viewModel)
-                .frame(minWidth: 200, maxWidth: 200, minHeight: 200, maxHeight: 200)
-        }
-        .windowLevel(.floating)
-        .defaultPosition(.center)
-        .windowResizability(.contentSize)
-        
-//        WindowGroup(id: Translate.translateWindow) {
-//            if hasPermission {
-//                TranslateView(viewModel: viewModel)
-//            } else {
-//                SettingsView(viewModel: viewModel)
-//                    .frame(minWidth: 400,
-//                           maxWidth: 400,
-//                           minHeight: 200,
-//                           maxHeight: 200,
-//                           alignment: .center)
-//                    .onAppear {
-//                        if !hasPermission {
-//                            showingPermissionAlert = true
-//                        }
-//                        
-//                        // 创建定时器每秒检查权限状态
-//                        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-//                            hasPermission = Translate.hasShortcutPermission()
-//                        }
-//                    }
-//            }
-//        }
-//        .windowResizability(.contentSize)
     }
 }

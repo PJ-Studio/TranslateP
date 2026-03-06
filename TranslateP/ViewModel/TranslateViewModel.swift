@@ -9,36 +9,33 @@ import SwiftUI
 import Translation
 
 class TranslateViewModel: ObservableObject {
-    @Environment(\.openWindow) var openWindow
-    @Environment(\.dismissWindow) var dismissWindow
+    var openWindowAction: OpenWindowAction?
+    var dismissWindowAction: DismissWindowAction?
     
     var sourceString = ""
-    let successDownloadString: String = "词典已下载"
     
-    private var keyboardMonitor: Any?
     private var mouseEventMonitor: Any?
     private var clipboardMonitor = ClipboardMonitor()
     
     /// 是否开启双击剪贴板识别截图翻译
     @Published var clipboardSnapshotOn: Bool = false {
         didSet {
-            if clipboardSnapshotOn {
-                setupClipboardMonitoring()
-            } else {
-                clipboardMonitor.stopMonitoring()
-            }
+            updateMonitoring()
         }
     }
-    /// 是否开启双击 command + c 快捷键监听功能
-    @Published var keyboardEventOn: Bool = false
+    /// 是否开启连续两次复制触发翻译功能
+    @Published var keyboardEventOn: Bool = false {
+        didSet {
+            updateMonitoring()
+        }
+    }
     ///是否开启截图翻译功能
     @Published var screenshotEventOn: Bool = false
-    @Published var targetString: String = DefualtTextString
+    @Published var targetString: String = DefaultTextString
     /// 每次 configuration 发生变化，都会触发一次完整翻译
     @Published var configuration: TranslationSession.Configuration?
     /// 翻译后文案字体大小
     @Published var fontSize: CGFloat = 14
-    @Published var hasPermission: Bool = Translate.hasShortcutPermission()
     /// 翻译窗口是否被 pin 固定
     @Published var isPinned: Bool = false
     /// 记住被 pin 时的窗口位置
@@ -70,7 +67,7 @@ class TranslateViewModel: ObservableObject {
     
     /// 根据当前内容和字体大小估算出的高度（仅文本部分）
     var estimatedTextHeight: CGFloat {
-        if targetString == TranslateViewModel.DefualtTextString || targetString.isEmpty {
+        if targetString == TranslateViewModel.DefaultTextString || targetString.isEmpty {
             return 40 // 默认初始高度
         }
         
@@ -140,42 +137,34 @@ class TranslateViewModel: ObservableObject {
         }
     }
 
+    private var copyCount = 0
+    private var lastCopyTime = Date()
+    private let copyInterval: TimeInterval = 0.5
+    private static let DefaultTextString = "..."
     
-    @Published var dictDisplayString: String = "词典安装完毕后，即可使用"
-    @Published var dictDownloaded: Bool = UserDefaults.standard.bool(forKey: Translate.hasDownloadedDict)
-    
-    @Published var permissionDisplayString: String = "给 TranslateP 添加访问“辅助功能”权限"
-    
-    private var commandCCount = 0
-    private var lastCommandCTime = Date()
-    private let commandCInterval: TimeInterval = 0.3
-    private static let DefualtTextString = "..."
-    
-    func commandCKeyEvent() {
+    private func handleCopyEvent(_ text: String) {
         if !keyboardEventOn {
             return
         }
         
         let now = Date()
         
-        if now.timeIntervalSince(lastCommandCTime) <= commandCInterval {
-            commandCCount += 1
+        if now.timeIntervalSince(lastCopyTime) <= copyInterval {
+            copyCount += 1
             
-            // 只在第二次按下时触发翻译
-            if commandCCount == 2 {
-                if let clipboardString = NSPasteboard.general.string(forType: .string) {
-                    self.sourceString = clipboardString
-                    self.targetString = TranslateViewModel.DefualtTextString
-                    self.showWindowAtMouse()
-                    triggerTranslation()
-                    commandCCount = 0
-                }
+            // 连续两次复制触发翻译
+            if copyCount == 2 {
+                self.sourceString = text
+                self.targetString = TranslateViewModel.DefaultTextString
+                self.showWindowAtMouse()
+                triggerTranslation()
+                copyCount = 0
             }
         } else {
-            commandCCount = 1
+            copyCount = 1
         }
         
-        lastCommandCTime = now
+        lastCopyTime = now
     }
     
     /// 查词
@@ -215,10 +204,17 @@ class TranslateViewModel: ObservableObject {
         let (sourceLanguage, targetLanguage) = isLanguageReversed 
             ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))  // 中文->英文
             : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))  // 英文->中文
-        if configuration == nil {
-            configuration = .init(source: sourceLanguage, target: targetLanguage)
-        } else {
-            configuration?.invalidate()
+        
+        // 确保在主线程更新 UI 相关的 configuration
+        DispatchQueue.main.async {
+            // 如果 configuration 已经存在且语言一致，则调用 invalidate 触发重新翻译
+            // 如果不一致或不存在，则重新创建
+            if self.configuration?.source == sourceLanguage, 
+               self.configuration?.target == targetLanguage {
+                self.configuration?.invalidate()
+            } else {
+                self.configuration = .init(source: sourceLanguage, target: targetLanguage)
+            }
         }
     }
     
@@ -251,21 +247,11 @@ class TranslateViewModel: ObservableObject {
     func toggleLanguageDirection() {
         isLanguageReversed.toggle()
         
-        let (sourceLanguage, targetLanguage) = isLanguageReversed
-            ? (Locale.Language(identifier: "zh"), Locale.Language(identifier: "en"))  // 中文->英文
-            : (Locale.Language(identifier: "en"), Locale.Language(identifier: "zh"))  // 英文->中文
-        
-        // 确保在主线程更新 UI 相关的 configuration，防止 NSStatusItem 等系统 UI 控件发生多线程崩溃
-        DispatchQueue.main.async {
-            if self.configuration == nil {
-                self.configuration = .init(source: sourceLanguage, target: targetLanguage)
-            } else {
-                self.configuration?.invalidate()
-            }
-        }
-        
-        // 如果查词框有内容，切换语言时自动触发一次重新查询
-        if !searchText.isEmpty {
+        // 只有在非查词模式下（即文案翻译窗口模式），才需要触发翻译
+        // 如果查词框有内容，searchWord 会处理翻译逻辑
+        if searchText.isEmpty {
+            triggerTranslation()
+        } else {
             searchWord()
         }
     }
@@ -276,23 +262,14 @@ class TranslateViewModel: ObservableObject {
     }
     
     func setupKeyboardMonitoring() {
-        if keyboardMonitor != nil {
-            return
-        }
-        keyboardMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            guard let self = self else { return }
-            if event.type == .keyDown {
-                if event.modifierFlags.contains(.command) && event.keyCode == 8 { // Command + C
-                    self.commandCKeyEvent()
-                }
-            }
-        }
+        // 已移除 Accessibility 相关的全局键盘监听
     }
     
     func setupMouseMonitoring() {
         if mouseEventMonitor != nil {
             return
         }
+        // 全局鼠标监听（点击外部关闭窗口），此 API 不需要辅助功能权限
         mouseEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self = self else { return }
             
@@ -348,7 +325,7 @@ class TranslateViewModel: ObservableObject {
     }
     
     private func createNewTranslateWindow(usePinnedPosition: Bool = false) {
-        openWindow(id: Translate.translateWindow)
+        openWindowAction?(id: Translate.translateWindow)
         
         if let window = Translate.findWindow(Translate.translateWindow) {
             let screenFrame = NSScreen.main?.visibleFrame ?? .zero
@@ -408,15 +385,10 @@ class TranslateViewModel: ObservableObject {
                 window.isMovable = false
                 window.isMovableByWindowBackground = false
             }
+            
+            // 启动鼠标监听以支持点击外部关闭
+            setupMouseMonitoring()
         }
-    }
-    
-    func openDownloadDictWindow() {
-        openWindow(id: Translate.downloadDictWindow)
-    }
-    
-    func dismissDownloadDictWindow() {
-        dismissWindow(id: Translate.downloadDictWindow)
     }
     
     /// 关闭翻译窗口并重置 pin 状态
@@ -426,12 +398,25 @@ class TranslateViewModel: ObservableObject {
             window.collectionBehavior = []
             window.isMovable = false
             window.isMovableByWindowBackground = false
-            // 移除窗口位置监听
+            // 移除窗口监听
             NotificationCenter.default.removeObserver(self, name: NSWindow.didMoveNotification, object: window)
         }
+        
+        // 停止鼠标监听
+        if let monitor = mouseEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            mouseEventMonitor = nil
+        }
+        
         isPinned = false
         pinnedWindowPosition = nil
-        dismissWindow(id: Translate.translateWindow)
+        dismissWindowAction?(id: Translate.translateWindow)
+    }
+    
+    deinit {
+        if let monitor = mouseEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
     
     /// 更新被 pin 窗口的位置（用于拖拽后保存新位置）
@@ -441,10 +426,25 @@ class TranslateViewModel: ObservableObject {
         }
     }
     
+    private func updateMonitoring() {
+        if keyboardEventOn || clipboardSnapshotOn {
+            setupClipboardMonitoring()
+        } else {
+            clipboardMonitor.stopMonitoring()
+        }
+    }
+    
     /// 设置剪贴板监听
     private func setupClipboardMonitoring() {
         clipboardMonitor.onImageDetected = { [weak self] image in
-            self?.handleClipboardImage(image)
+            if self?.clipboardSnapshotOn == true {
+                self?.handleClipboardImage(image)
+            }
+        }
+        clipboardMonitor.onTextDetected = { [weak self] text in
+            if self?.keyboardEventOn == true {
+                self?.handleCopyEvent(text)
+            }
         }
         clipboardMonitor.startMonitoring()
     }
@@ -460,7 +460,7 @@ class TranslateViewModel: ObservableObject {
             
             // 设置识别出的文字作为源文字
             self.sourceString = text
-            self.targetString = TranslateViewModel.DefualtTextString
+            self.targetString = TranslateViewModel.DefaultTextString
             
             // 显示翻译窗口
             self.showWindowAtMouse()

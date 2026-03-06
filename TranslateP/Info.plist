@@ -6,9 +6,5 @@
 	<true/>
 	<key>NLLanguageModelUsageDescription</key>
 	<string>需要使用翻译功能</string>
-	<key>Privacy - Accessibility Usage Description</key>
-	<string>需要辅助功能权限来监听键盘事件</string>
-	<key>NSAppleEventsUsageDescription</key>
-	<string>需要访问键盘输入来响应快捷键</string>
 </dict>
 </plist>
