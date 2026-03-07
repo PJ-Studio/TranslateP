@@ -131,6 +131,9 @@ struct TranslateContentView: View {
                     wordPhonetics = viewModel.isSourceLanguageEnglish ? WordService.getWordPhonetics(for: viewModel.sourceString) : nil
                     isTranslationCompleted = true
                     viewModel.adjustWindowPosition()
+                    
+                    // 自动保存到单词本
+                    viewModel.saveToWordBookIfNeeded(source: viewModel.sourceString, target: resp.targetText, phonetic: wordPhonetics)
                 }
             } catch is CancellationError {
                 // 忽略取消错误

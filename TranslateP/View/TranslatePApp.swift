@@ -22,6 +22,7 @@ struct TranslatePApp: App {
                 .onAppear {
                     viewModel.openWindowAction = openWindow
                     viewModel.dismissWindowAction = dismissWindow
+                    NSApplication.shared.setActivationPolicy(.accessory)
                 }
         }
         .menuBarExtraStyle(.window)
@@ -32,6 +33,13 @@ struct TranslatePApp: App {
         }
         .windowStyle(.plain) // 设置 window 类型为只有内容，其他都不要
         .windowLevel(.floating)
+        .defaultPosition(.center)
+        .windowResizability(.contentSize)
+        
+        Window("单词本", id: Translate.wordBookWindow) {
+            WordBookView()
+                .frame(minWidth: 500, maxWidth: 900, minHeight: 400, maxHeight: 700)
+        }
         .defaultPosition(.center)
         .windowResizability(.contentSize)
     }

@@ -45,40 +45,6 @@ struct MenuView: View {
         ScrollView {
             VStack(spacing: 0) {
                 Form {
-                    Section("功能设置") {
-                        Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
-                        Toggle("剪贴板截图翻译", isOn: $viewModel.clipboardSnapshotOn)
-                        
-                        HStack {
-                            Text("英文")
-                            Spacer()
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    viewModel.toggleLanguageDirection()
-                                }
-                            }) {
-                                Image(systemName: "arrowshape.right")
-                                    .font(.title3)
-                                    .foregroundColor(.primary)
-                                    .scaleEffect(x: viewModel.isLanguageReversed ? -1 : 1, y: 1)
-                            }
-                            .buttonStyle(.plain)
-                            Spacer()
-                            Text("中文")
-                        }
-                        .padding(.vertical, 5)
-                    }
-                    
-                    Section("UI 设置") {
-                        HStack {
-                            Text("文字大小  \(Int(viewModel.fontSize))pt")
-                            Spacer()
-                            Slider(value: $viewModel.fontSize, in: 10...30, step: 1)
-                                .frame(width: 150)
-                                .controlSize(.small)
-                        }
-                    }
-                    
                     Section("查词") {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -141,6 +107,54 @@ struct MenuView: View {
                             }
                         }
                     }
+                    
+                    Section("功能设置") {
+                        Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
+                        Toggle("剪贴板截图翻译", isOn: $viewModel.clipboardSnapshotOn)
+                        
+                        Toggle("自动保存到单词本", isOn: $viewModel.autoSaveToWordBook)
+                        
+                        HStack {
+                            Text("单词本")
+                            Spacer()
+                            Button(action: {
+                                viewModel.openWordBookWindow()
+                            }) {
+                                Image(systemName: "book.closed")
+                                    .foregroundColor(.primary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        
+                        HStack {
+                            Text("英文")
+                            Spacer()
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    viewModel.toggleLanguageDirection()
+                                }
+                            }) {
+                                Image(systemName: "arrowshape.right")
+                                    .font(.title3)
+                                    .foregroundColor(.primary)
+                                    .scaleEffect(x: viewModel.isLanguageReversed ? -1 : 1, y: 1)
+                            }
+                            .buttonStyle(.plain)
+                            Spacer()
+                            Text("中文")
+                        }
+                        .padding(.vertical, 5)
+                    }
+                    
+                    Section("UI 设置") {
+                        HStack {
+                            Text("文字大小  \(Int(viewModel.fontSize))pt")
+                            Spacer()
+                            Slider(value: $viewModel.fontSize, in: 10...30, step: 1)
+                                .frame(width: 150)
+                                .controlSize(.small)
+                        }
+                    }
                 }
                 .formStyle(.grouped)
                 .frame(minHeight: 350)
@@ -175,11 +189,20 @@ struct MenuView: View {
             guard !viewModel.searchText.isEmpty else { return }
             do {
                 let response = try await session.translate(viewModel.searchText)
-                viewModel.searchResult = response.targetText
+                DispatchQueue.main.async {
+                    viewModel.searchResult = response.targetText
+                    viewModel.saveToWordBookIfNeeded(
+                        source: viewModel.searchText,
+                        target: response.targetText,
+                        phonetic: viewModel.searchPhonetics
+                    )
+                }
             } catch is CancellationError {
                 // 忽略取消错误
             } catch {
-                viewModel.searchResult = "查询失败: \(error.localizedDescription)"
+                DispatchQueue.main.async {
+                    viewModel.searchResult = "查询失败: \(error.localizedDescription)"
+                }
             }
         }
         .onAppear {
