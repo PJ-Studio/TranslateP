@@ -54,7 +54,7 @@ struct WordBookView: View {
             if let _ = viewModel.selectedLanguage {
                 WordListView(viewModel: viewModel)
             } else {
-                Text("请选择一种语言")
+                Text("开启“自动保存到单词本”后，查询过的单词在这里可以看到")
                     .foregroundColor(.secondary)
             }
         }
@@ -180,11 +180,20 @@ class WordBookViewModel: ObservableObject {
             languages = newLanguages
         }
         
+        // 如果当前选中的语言不在新的列表中，重置选择
+        if let selected = selectedLanguage, !languages.contains(selected) {
+            selectedLanguage = nil
+        }
+        
         if selectedLanguage == nil {
             selectedLanguage = languages.first
-        } else if let selected = selectedLanguage {
-            // Reload entries if already selected
+        }
+        
+        // 刷新内容
+        if let selected = selectedLanguage {
             loadEntries(for: selected)
+        } else {
+            groupedEntries = []
         }
     }
     
@@ -207,7 +216,7 @@ class WordBookViewModel: ObservableObject {
         guard let language = selectedLanguage else { return }
         
         WordBookManager.shared.delete(entry: entry, from: folderURL, targetLanguage: language)
-        loadEntries(for: language)
+        loadLanguages()
     }
     
     func speak(_ text: String) {

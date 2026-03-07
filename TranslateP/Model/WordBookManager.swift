@@ -28,6 +28,8 @@ class WordBookManager {
     
     private init() {}
     
+    private let queue = DispatchQueue(label: "com.translatep.wordbookmanager.queue")
+    
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
@@ -48,91 +50,36 @@ class WordBookManager {
     }
     
     /// 保存单词到对应的 Markdown 文件
-    func save(source: String, target: String, phonetic: String?, targetLanguage: String, to folderURL: URL) {
-        let fileName = "\(targetLanguage).md"
-        let fileURL = folderURL.appendingPathComponent(fileName)
-        
-        let dateString = dateFormatter.string(from: Date())
-        
-        do {
-            try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
-            var sections: [String: [WordEntry]] = [:]
+    func save(source: String, target: String, phonetic: String?, targetLanguage: String, to folderURL: URL) {        queue.sync {
+            // 先加载现有内容
+            var entries = loadInternal(from: folderURL, targetLanguage: targetLanguage)
             
-            if FileManager.default.fileExists(atPath: fileURL.path),
-               let content = try? String(contentsOf: fileURL, encoding: .utf8) {
-                let lines = content.components(separatedBy: .newlines)
-                
-                var currentDateString: String?
-                var currentSource: String?
-                var currentPhonetic: String?
-                var currentTarget: String?
-                
-                func flushEntry() {
-                    guard let dateString = currentDateString,
-                          let date = dateFormatter.date(from: dateString),
-                          let source = currentSource,
-                          let target = currentTarget else { return }
-                    
-                    let entry = WordEntry(source: source, target: target, phonetic: currentPhonetic, date: date)
-                    sections[dateString, default: []].append(entry)
-                }
-                
-                for line in lines {
-                    let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-                    
-                    if trimmedLine.hasPrefix("# ") {
-                        flushEntry()
-                        currentSource = nil
-                        currentPhonetic = nil
-                        currentTarget = nil
-                        currentDateString = String(trimmedLine.dropFirst(2))
-                    } else if trimmedLine.hasPrefix("### ") {
-                        flushEntry()
-                        currentSource = String(trimmedLine.dropFirst(4))
-                        currentPhonetic = nil
-                        currentTarget = nil
-                    } else if trimmedLine.hasPrefix("- 音标: ") {
-                        currentPhonetic = String(trimmedLine.dropFirst(6))
-                    } else if trimmedLine.hasPrefix("- 译文: ") {
-                        currentTarget = String(trimmedLine.dropFirst(6))
-                    }
-                }
-                
-                flushEntry()
-            }
-            
+            // 创建新条目
+            let dateString = dateFormatter.string(from: Date())
             let todayDate = dateFormatter.date(from: dateString) ?? Date()
+            
             let newEntry = WordEntry(source: source, target: target, phonetic: phonetic, date: todayDate)
-            sections[dateString, default: []].insert(newEntry, at: 0)
             
-            let sortedDates = sections.keys.sorted(by: >)
-            var fileContent = ""
+            // 插入到最前面
+            entries.insert(newEntry, at: 0)
             
-            for (index, dateKey) in sortedDates.enumerated() {
-                if index > 0 {
-                    fileContent += "\n\n"
-                }
-                fileContent += "# \(dateKey)\n"
-                
-                for entry in sections[dateKey] ?? [] {
-                    fileContent += "\n### \(entry.source)\n"
-                    if let phon = entry.phonetic, !phon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        fileContent += "- 音标: \(phon)\n"
-                    }
-                    fileContent += "- 译文: \(entry.target)"
-                }
+            // 生成文件内容
+            let fileContent = generateFileContent(from: entries)
+            
+            // 写入文件
+            let fileName = "\(targetLanguage).md"
+            let fileURL = folderURL.appendingPathComponent(fileName)
+            
+            do {
+                try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+                try fileContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            } catch {
+                print("保存单词本失败: \(error)")
             }
-            
-            
-            fileContent += "\n"
-            try fileContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("保存单词本失败: \(error)")
         }
     }
     
-    /// 从文件夹加载特定语言的单词本
-    func load(from folderURL: URL, targetLanguage: String) -> [WordEntry] {
+    private func loadInternal(from folderURL: URL, targetLanguage: String) -> [WordEntry] {
         let fileName = "\(targetLanguage).md"
         let fileURL = folderURL.appendingPathComponent(fileName)
         
@@ -192,22 +139,55 @@ class WordBookManager {
         return entries
     }
     
+    /// 从文件夹加载特定语言的单词本
+    func load(from folderURL: URL, targetLanguage: String) -> [WordEntry] {
+        return queue.sync {
+            return loadInternal(from: folderURL, targetLanguage: targetLanguage)
+        }
+    }
+    
     /// 删除单词（重新写入文件）
     func delete(entry: WordEntry, from folderURL: URL, targetLanguage: String) {
-        // 加载当前所有单词
-        var allEntries = load(from: folderURL, targetLanguage: targetLanguage)
-        
-        // 删除指定单词
-        allEntries.removeAll { $0 == entry }
-        
-        // 重写文件
-        let fileName = "\(targetLanguage).md"
-        let fileURL = folderURL.appendingPathComponent(fileName)
-        
+        queue.sync {
+            // 加载当前所有单词
+            var allEntries = loadInternal(from: folderURL, targetLanguage: targetLanguage)
+            
+            // 删除指定单词
+            allEntries.removeAll { $0 == entry }
+            
+            let fileName = "\(targetLanguage).md"
+            let fileURL = folderURL.appendingPathComponent(fileName)
+            
+            // 如果没有剩余单词，直接删除文件
+            if allEntries.isEmpty {
+                do {
+                    if FileManager.default.fileExists(atPath: fileURL.path) {
+                        try FileManager.default.removeItem(at: fileURL)
+                    }
+                } catch {
+                    print("删除单词本文件失败: \(error)")
+                }
+                return
+            }
+            
+            // 重写文件
+            
+            let fileContent = generateFileContent(from: allEntries)
+            
+            do {
+                try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
+                try fileContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            } catch {
+                print("删除单词失败: \(error)")
+            }
+        }
+    }
+    
+    private func generateFileContent(from entries: [WordEntry]) -> String {
         var fileContent = ""
         
         // 按日期分组
-        let grouped = Dictionary(grouping: allEntries, by: { dateFormatter.string(from: $0.date) })
+        let grouped = Dictionary(grouping: entries, by: { dateFormatter.string(from: $0.date) })
         let sortedDatesDesc = grouped.keys.sorted(by: >)
         
         for (index, dateString) in sortedDatesDesc.enumerated() {
@@ -221,18 +201,13 @@ class WordBookManager {
                     if let phon = word.phonetic, !phon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         fileContent += "- 音标: \(phon)\n"
                     }
-                    fileContent += "- 译文: \(word.target)" // 避免多余换行
+                    fileContent += "- 译文: \(word.target)"
                 }
             }
         }
         // 最后加个换行
         fileContent += "\n"
         
-        do {
-            try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
-            try fileContent.write(to: fileURL, atomically: true, encoding: .utf8)
-        } catch {
-            print("删除单词失败: \(error)")
-        }
+        return fileContent
     }
 }
