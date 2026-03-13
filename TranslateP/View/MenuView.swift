@@ -109,7 +109,27 @@ struct MenuView: View {
                     }
                     
                     Section("功能设置") {
-                        Toggle("两次 ⌘ + C 翻译", isOn: $viewModel.keyboardEventOn)
+                        HStack(spacing: 6) {
+                            Text("两次 ⌘ + C 翻译")
+                            Spacer()
+                            if viewModel.keyboardEventOn {
+                                Text(String(format: "%.2fs", viewModel.doubleCopyInterval))
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                Stepper(
+                                    "",
+                                    value: $viewModel.doubleCopyInterval,
+                                    in: 0.1...2.0,
+                                    step: 0.05
+                                )
+                                .labelsHidden()
+                                .controlSize(.mini)
+                            }
+                            Toggle("", isOn: $viewModel.keyboardEventOn)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                        }
                         Toggle("剪贴板截图翻译", isOn: $viewModel.clipboardSnapshotOn)
                         
                         Toggle("自动保存到单词本", isOn: $viewModel.autoSaveToWordBook)

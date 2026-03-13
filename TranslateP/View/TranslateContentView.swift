@@ -70,6 +70,16 @@ struct TranslateContentView: View {
                                 .frame(width: 16, height: 16)
                         }
                         .buttonStyle(.plain)
+                        
+                        Button(action: {
+                            addToWordBook()
+                        }) {
+                            Image(systemName: viewModel.isCurrentWordInWordBook ? "bookmark.fill" : "bookmark")
+                                .foregroundColor(viewModel.isCurrentWordInWordBook ? .yellow : .gray)
+                                .fixedSize()
+                                .frame(width: 16, height: 16)
+                        }
+                        .buttonStyle(.plain)
                     }
                     
                     Button(action: {
@@ -120,6 +130,7 @@ struct TranslateContentView: View {
             DispatchQueue.main.async {
                 isTranslationCompleted = false
                 wordPhonetics = nil
+                viewModel.isCurrentWordInWordBook = false
             }
             
             do {
@@ -134,6 +145,10 @@ struct TranslateContentView: View {
                     
                     // 自动保存到单词本
                     viewModel.saveToWordBookIfNeeded(source: viewModel.sourceString, target: resp.targetText, phonetic: wordPhonetics)
+                    // 检查是否已在单词本中（自动保存会更新状态，未开启自动保存时也要检查）
+                    if !viewModel.autoSaveToWordBook {
+                        viewModel.checkIfWordInWordBook(source: viewModel.sourceString)
+                    }
                 }
             } catch is CancellationError {
                 // 忽略取消错误
@@ -161,6 +176,15 @@ struct TranslateContentView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             isCopied = false
         }
+    }
+    
+    private func addToWordBook() {
+        guard !viewModel.sourceString.isEmpty, !viewModel.targetString.isEmpty else { return }
+        viewModel.addToWordBook(
+            source: viewModel.sourceString,
+            target: viewModel.targetString,
+            phonetic: wordPhonetics
+        )
     }
     
     // 启用窗口拖拽

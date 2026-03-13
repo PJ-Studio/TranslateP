@@ -22,6 +22,8 @@ struct Translate {
     
     /// 自动保存到单词本开关
     static let autoSaveToWordBook = "auto_save_to_word_book"
+    /// 两次 cmd+c 触发翻译的时间间隔
+    static let doubleCopyInterval = "double_copy_interval"
     /// 单词本路径
     static let wordBookPath = "word_book_path"
     

@@ -67,6 +67,9 @@ class TranslateViewModel: ObservableObject {
         }
     }
     
+    /// 当前翻译结果是否已收录在单词本中
+    @Published var isCurrentWordInWordBook: Bool = false
+    
     @Published var permissionDisplayString: String = "给 TranslateP 添加访问“辅助功能”权限"
     
     /// 翻译窗口固定宽度
@@ -153,7 +156,14 @@ class TranslateViewModel: ObservableObject {
 
     private var copyCount = 0
     private var lastCopyTime = Date()
-    private let copyInterval: TimeInterval = 0.5
+    /// 两次 cmd+c 触发翻译的时间间隔（默认 0.5s，最小 0.1s，步进 0.05s）
+    @Published var doubleCopyInterval: Double = UserDefaults.standard.object(forKey: Translate.doubleCopyInterval) != nil
+        ? UserDefaults.standard.double(forKey: Translate.doubleCopyInterval)
+        : 0.5 {
+        didSet {
+            UserDefaults.standard.set(doubleCopyInterval, forKey: Translate.doubleCopyInterval)
+        }
+    }
     private static let DefaultTextString = "..."
     
     private func handleCopyEvent(_ text: String) {
@@ -163,7 +173,7 @@ class TranslateViewModel: ObservableObject {
         
         let now = Date()
         
-        if now.timeIntervalSince(lastCopyTime) <= copyInterval {
+        if now.timeIntervalSince(lastCopyTime) <= doubleCopyInterval {
             copyCount += 1
             
             // 连续两次复制触发翻译
@@ -491,9 +501,47 @@ class TranslateViewModel: ObservableObject {
         let targetLanguage = isLanguageReversed ? "English" : "中文"
         
         DispatchQueue.global(qos: .background).async {
-            WordBookManager.shared.save(source: source, target: target, phonetic: phonetic, targetLanguage: targetLanguage, to: folderURL)
+            let saved = WordBookManager.shared.save(source: source, target: target, phonetic: phonetic, targetLanguage: targetLanguage, to: folderURL)
             DispatchQueue.main.async {
-                NotificationCenter.default.post(name: Translate.wordBookDidUpdate, object: nil)
+                // 无论新增还是已存在，单词都在词本中
+                self.isCurrentWordInWordBook = true
+                // 仅真正写入时才通知 UI 刷新
+                if saved {
+                    NotificationCenter.default.post(name: Translate.wordBookDidUpdate, object: nil)
+                }
+            }
+        }
+    }
+    
+    /// 手动将当前翻译结果加入单词本（不受自动保存开关影响）
+    func addToWordBook(source: String, target: String, phonetic: String?) {
+        let folderURL = Translate.wordBookFolderURL()
+        let targetLanguage = isLanguageReversed ? "English" : "中文"
+        
+        DispatchQueue.global(qos: .background).async {
+            let saved = WordBookManager.shared.save(source: source, target: target, phonetic: phonetic, targetLanguage: targetLanguage, to: folderURL)
+            DispatchQueue.main.async {
+                self.isCurrentWordInWordBook = true
+                if saved {
+                    NotificationCenter.default.post(name: Translate.wordBookDidUpdate, object: nil)
+                }
+            }
+        }
+    }
+    
+    /// 检查当前源文本是否已在单词本中，并更新 isCurrentWordInWordBook
+    func checkIfWordInWordBook(source: String) {
+        guard !source.isEmpty else {
+            isCurrentWordInWordBook = false
+            return
+        }
+        let folderURL = Translate.wordBookFolderURL()
+        let targetLanguage = isLanguageReversed ? "English" : "中文"
+        
+        DispatchQueue.global(qos: .background).async {
+            let exists = WordBookManager.shared.contains(source: source, targetLanguage: targetLanguage, in: folderURL)
+            DispatchQueue.main.async {
+                self.isCurrentWordInWordBook = exists
             }
         }
     }
