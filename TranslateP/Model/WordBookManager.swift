@@ -49,10 +49,25 @@ class WordBookManager {
         }
     }
     
-    /// 保存单词到对应的 Markdown 文件
-    func save(source: String, target: String, phonetic: String?, targetLanguage: String, to folderURL: URL) {        queue.sync {
+    /// 检查源文本是否已存在于单词本中（忽略大小写）
+    func contains(source: String, targetLanguage: String, in folderURL: URL) -> Bool {
+        return queue.sync {
+            let entries = loadInternal(from: folderURL, targetLanguage: targetLanguage)
+            return entries.contains { $0.source.lowercased() == source.lowercased() }
+        }
+    }
+    
+    /// 保存单词到对应的 Markdown 文件（已存在则跳过），返回是否实际写入
+    @discardableResult
+    func save(source: String, target: String, phonetic: String?, targetLanguage: String, to folderURL: URL) -> Bool {
+        return queue.sync {
             // 先加载现有内容
             var entries = loadInternal(from: folderURL, targetLanguage: targetLanguage)
+            
+            // 去重：源文本已存在则跳过
+            if entries.contains(where: { $0.source.lowercased() == source.lowercased() }) {
+                return false
+            }
             
             // 创建新条目
             let dateString = dateFormatter.string(from: Date())
@@ -73,8 +88,10 @@ class WordBookManager {
             do {
                 try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true)
                 try fileContent.write(to: fileURL, atomically: true, encoding: .utf8)
+                return true
             } catch {
                 print("保存单词本失败: \(error)")
+                return false
             }
         }
     }
