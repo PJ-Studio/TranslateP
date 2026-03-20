@@ -180,7 +180,7 @@ struct TranslateContentView: View {
     
     private func addToWordBook() {
         guard !viewModel.sourceString.isEmpty, !viewModel.targetString.isEmpty else { return }
-        viewModel.addToWordBook(
+        viewModel.toggleWordBook(
             source: viewModel.sourceString,
             target: viewModel.targetString,
             phonetic: wordPhonetics
