@@ -529,6 +529,42 @@ class TranslateViewModel: ObservableObject {
         }
     }
     
+    /// 从单词本中移除当前翻译结果
+    func removeFromWordBook(source: String, target: String, phonetic: String?) {
+        let folderURL = Translate.wordBookFolderURL()
+        let targetLanguage = isLanguageReversed ? "English" : "中文"
+        
+        // 构造与保存时相同格式的 WordEntry 用于匹配删除
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: Date())
+        let todayDate = dateFormatter.date(from: dateString) ?? Date()
+        let entry = WordEntry(source: source, target: target, phonetic: phonetic, date: todayDate)
+        
+        DispatchQueue.global(qos: .background).async {
+            // 先找到实际存储的条目（日期可能不是今天）
+            let entries = WordBookManager.shared.load(from: folderURL, targetLanguage: targetLanguage)
+            let normalizedSource = WordBookManager.shared.normalizeSource(source)
+            guard let actualEntry = entries.first(where: { $0.source.lowercased() == normalizedSource.lowercased() }) else {
+                return
+            }
+            WordBookManager.shared.delete(entry: actualEntry, from: folderURL, targetLanguage: targetLanguage)
+            DispatchQueue.main.async {
+                self.isCurrentWordInWordBook = false
+                NotificationCenter.default.post(name: Translate.wordBookDidUpdate, object: nil)
+            }
+        }
+    }
+    
+    /// 切换收藏状态：已收藏则取消，未收藏则添加
+    func toggleWordBook(source: String, target: String, phonetic: String?) {
+        if isCurrentWordInWordBook {
+            removeFromWordBook(source: source, target: target, phonetic: phonetic)
+        } else {
+            addToWordBook(source: source, target: target, phonetic: phonetic)
+        }
+    }
+    
     /// 检查当前源文本是否已在单词本中，并更新 isCurrentWordInWordBook
     func checkIfWordInWordBook(source: String) {
         guard !source.isEmpty else {

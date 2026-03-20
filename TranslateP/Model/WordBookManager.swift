@@ -49,31 +49,42 @@ class WordBookManager {
         }
     }
     
-    /// 检查源文本是否已存在于单词本中（忽略大小写）
+    /// 将多行文本规范化为单行（换行合并为空格，去除多余空白）
+    func normalizeSource(_ source: String) -> String {
+        return source
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+    
+    /// 检查源文本是否已存在于单词本中（忽略大小写，忽略换行差异）
     func contains(source: String, targetLanguage: String, in folderURL: URL) -> Bool {
+        let normalizedSource = normalizeSource(source)
         return queue.sync {
             let entries = loadInternal(from: folderURL, targetLanguage: targetLanguage)
-            return entries.contains { $0.source.lowercased() == source.lowercased() }
+            return entries.contains { $0.source.lowercased() == normalizedSource.lowercased() }
         }
     }
     
     /// 保存单词到对应的 Markdown 文件（已存在则跳过），返回是否实际写入
     @discardableResult
     func save(source: String, target: String, phonetic: String?, targetLanguage: String, to folderURL: URL) -> Bool {
+        let normalizedSource = normalizeSource(source)
         return queue.sync {
             // 先加载现有内容
             var entries = loadInternal(from: folderURL, targetLanguage: targetLanguage)
             
-            // 去重：源文本已存在则跳过
-            if entries.contains(where: { $0.source.lowercased() == source.lowercased() }) {
+            // 去重：源文本已存在则跳过（规范化后比较，忽略大小写）
+            if entries.contains(where: { $0.source.lowercased() == normalizedSource.lowercased() }) {
                 return false
             }
             
-            // 创建新条目
+            // 创建新条目（使用规范化后的 source）
             let dateString = dateFormatter.string(from: Date())
             let todayDate = dateFormatter.date(from: dateString) ?? Date()
             
-            let newEntry = WordEntry(source: source, target: target, phonetic: phonetic, date: todayDate)
+            let newEntry = WordEntry(source: normalizedSource, target: target, phonetic: phonetic, date: todayDate)
             
             // 插入到最前面
             entries.insert(newEntry, at: 0)
