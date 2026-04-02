@@ -11,7 +11,6 @@ import SwiftUI
 class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     @Published var isSpeaking = false
     private let synthesizer = AVSpeechSynthesizer()
-    private let speechQueue = DispatchQueue(label: "speech.queue", qos: .background)
     
     override init() {
         super.init()
@@ -21,23 +20,20 @@ class SpeechManager: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     func speakText(_ text: String, language: String = "en-US") {
         guard !text.isEmpty else { return }
         
+        // 已在播放则停止（切换状态）
         if synthesizer.isSpeaking {
             stopSpeaking()
             return
         }
         
-        speechQueue.async {
-            let utterance = AVSpeechUtterance(string: text)
-            utterance.voice = AVSpeechSynthesisVoice(language: language)
-            utterance.rate = 0.5
-            utterance.volume = 1.0
-            
-            DispatchQueue.main.async {
-                self.isSpeaking = true
-            }
-            
-            self.synthesizer.speak(utterance)
-        }
+        // AVSpeechSynthesizer 必须在主线程操作
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.rate = 0.5
+        utterance.volume = 1.0
+        
+        isSpeaking = true
+        synthesizer.speak(utterance)
     }
     
     func stopSpeaking() {

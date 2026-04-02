@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Carbon.HIToolbox
 import AppKit
 import Translation
 
@@ -26,7 +25,7 @@ struct TranslatePApp: App {
                 }
         }
         .menuBarExtraStyle(.window)
-        .windowResizability(.contentSize)
+        .defaultSize(width: 320, height: 500)
 
         Window("文案翻译", id: Translate.translateWindow) {
             TranslateContentView(viewModel: viewModel)
